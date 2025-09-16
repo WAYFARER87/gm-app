@@ -45,7 +45,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   carousel_slider: ^5.1.1
   flutter_svg: ^2.0.10+1
-  barcode_widget: ^2.0.4
   palette_generator: ^0.3.3+7
   shimmer: ^3.0.0
 

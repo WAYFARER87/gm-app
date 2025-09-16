@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,7 +10,6 @@ import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/primary_button.dart';
 import 'offer_model.dart';
-import '../auth/club_card_screen.dart';
 import 'widgets/rating_widget.dart';
 import '../../core/utils/image_brightness.dart';
 
@@ -97,37 +95,6 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
   }
 
   // ===== helpers
-
-  Future<Position?> _getPositionWithPermission() async {
-    try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.deniedForever ||
-          perm == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Необходимо включить геолокацию')),
-          );
-        }
-        return null;
-      }
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Не удалось определить местоположение: $e')),
-        );
-      }
-      return null;
-    }
-  }
 
   void _shareOffer() {
     final link = widget.offer.shareUrl;
@@ -437,64 +404,6 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                       ),
                     ],
                   ],
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    text: 'Клубная карта',
-                    onPressed: () async {
-                      double curLat;
-                      double curLng;
-                      final pos = await _getPositionWithPermission();
-                      if (pos == null) return;
-                      curLat = pos.latitude;
-                      curLng = pos.longitude;
-
-                      var isNear = false;
-                      for (final b in widget.offer.branches) {
-                        final lat = b.lat;
-                        final lng = b.lng;
-                        if (lat == null || lng == null) continue;
-                        final d = Geolocator.distanceBetween(
-                            curLat, curLng, lat, lng);
-                        if (d <= 300) {
-                          isNear = true;
-                          break;
-                        }
-                      }
-                      final id = int.tryParse(widget.offer.id);
-
-                      if (isNear && id != null) {
-                        try {
-                          await _api.checkinBenefit(id, curLat, curLng);
-                        } on DioException catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Ошибка сети: $e')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Ошибка: $e')),
-                            );
-                          }
-                        }
-                      }
-
-                      if (!mounted) return;
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ClubCardScreen(),
-                        ),
-                      );
-                    },
-                  ),
                 ),
               ),
             ),

@@ -2,10 +2,5 @@
   "appTitle": "GorodMore.ru",
   "login": "Войти",
   "register": "Регистрация",
-  "clubCard": "Клубная карта",
-  "profile": "Профиль",
-  "cancel": "Отмена",
-  "save": "Сохранить",
-  "retry": "Повторить",
-  "logout": "Выйти"
+  "retry": "Повторить"
 }

@@ -1,10 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
-import 'package:m_club/core/services/api_service.dart';
-import 'package:m_club/features/auth/club_card_screen.dart';
 import 'package:m_club/features/mclub/offer_detail_screen.dart';
 import 'package:m_club/features/mclub/offer_model.dart';
 
@@ -35,26 +30,6 @@ Offer _buildOffer({
     vote: vote,
     isFavorite: false,
   );
-}
-
-class _FakeGeolocator extends GeolocatorPlatform {
-  final Position position;
-  _FakeGeolocator(this.position);
-
-  @override
-  Future<LocationPermission> checkPermission() async =>
-      LocationPermission.always;
-
-  @override
-  Future<LocationPermission> requestPermission() async =>
-      LocationPermission.always;
-
-  @override
-  Future<Position> getCurrentPosition({LocationSettings? locationSettings}) async =>
-      position;
-
-  @override
-  Future<bool> isLocationServiceEnabled() async => true;
 }
 
 void main() {
@@ -133,87 +108,4 @@ void main() {
     expect(ratingSize.height, dateSize.height);
   });
 
-  testWidgets('opens card without checkin when far', (tester) async {
-    final api = ApiService();
-    api.dio.interceptors.clear();
-    RequestOptions? lastRequest;
-    api.dio.interceptors.add(
-      InterceptorsWrapper(onRequest: (options, handler) {
-        lastRequest = options;
-        handler.resolve(Response(requestOptions: options, data: {}));
-      }),
-    );
-
-    GeolocatorPlatform.instance = _FakeGeolocator(
-      Position(
-        latitude: 0,
-        longitude: 0,
-        timestamp: DateTime(0),
-        accuracy: 0,
-        altitude: 0,
-        heading: 0,
-        speed: 0,
-        speedAccuracy: 0,
-        altitudeAccuracy: 0,
-        headingAccuracy: 0,
-      ),
-    );
-
-    final offer = _buildOffer(
-      vote: 0,
-      rating: 0,
-      branches: [Branch(lat: 10, lng: 10)],
-    );
-
-    await tester.pumpWidget(MaterialApp(home: OfferDetailScreen(offer: offer)));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Клубная карта'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ClubCardScreen), findsOneWidget);
-    expect(lastRequest, isNull);
-  });
-
-  testWidgets('opens card and checks in when near', (tester) async {
-    final api = ApiService();
-    api.dio.interceptors.clear();
-    RequestOptions? lastRequest;
-    api.dio.interceptors.add(
-      InterceptorsWrapper(onRequest: (options, handler) {
-        lastRequest = options;
-        handler.resolve(Response(requestOptions: options, data: {}));
-      }),
-    );
-
-    GeolocatorPlatform.instance = _FakeGeolocator(
-      Position(
-        latitude: 0,
-        longitude: 0,
-        timestamp: DateTime(0),
-        accuracy: 0,
-        altitude: 0,
-        heading: 0,
-        speed: 0,
-        speedAccuracy: 0,
-        altitudeAccuracy: 0,
-        headingAccuracy: 0,
-      ),
-    );
-
-    final offer = _buildOffer(
-      vote: 0,
-      rating: 0,
-      branches: [Branch(lat: 0, lng: 0)],
-    );
-
-    await tester.pumpWidget(MaterialApp(home: OfferDetailScreen(offer: offer)));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Клубная карта'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ClubCardScreen), findsOneWidget);
-    expect(lastRequest?.path, '/benefits/checkin');
-  });
 }
