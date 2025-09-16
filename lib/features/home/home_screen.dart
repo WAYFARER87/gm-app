@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../news/news_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,8 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
-        title: SvgPicture.asset(
-          'assets/images/mclub_logo.svg',
+        title: Image.asset(
+          'assets/images/logo_light_mobile.png',
           height: 60,
           fit: BoxFit.contain,
         ),
