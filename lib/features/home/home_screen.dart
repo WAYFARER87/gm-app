@@ -4,7 +4,6 @@ import '../mclub/mclub_screen.dart';
 import '../uae_unlocked/uae_unlocked_screen.dart';
 import '../radio/radio_screen.dart';
 import '../news/news_screen.dart';
-import '../auth/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.showNearbyOnly = false});
@@ -41,16 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
         automaticallyImplyLeading: false,  // без пустой «назад»-кнопки
         backgroundColor: Colors.white,
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle, color: _primary),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
-          ),
-        ],
         elevation: 0,
         title: SvgPicture.asset(
           'assets/images/mclub_logo.svg',
