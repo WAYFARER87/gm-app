@@ -4,7 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../core/services/api_service.dart';
 import '../../core/utils/parse_bool.dart';
-import '../mclub/category_model.dart';
+import 'category.dart';
 import 'recommendation_model.dart';
 import 'recommendation_detail_screen.dart';
 import 'recommendations_map_screen.dart';

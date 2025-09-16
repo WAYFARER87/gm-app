@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../mclub/mclub_screen.dart';
 import '../uae_unlocked/uae_unlocked_screen.dart';
 import '../news/news_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.showNearbyOnly = false});
-
-  final bool showNearbyOnly;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,18 +14,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
 
   static const _primary = Color(0xFF182857);
-
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      MClubScreen(showNearbyOnly: widget.showNearbyOnly),
-      const UAEUnlockedScreen(),
-      const NewsScreen(),
-    ];
-  }
+  static const List<Widget> _pages = [
+    UAEUnlockedScreen(),
+    NewsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.local_offer), label: 'GorodMore.ru'),
-          BottomNavigationBarItem(icon: Icon(Icons.travel_explore), label: 'Открой ОАЭ!'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.travel_explore),
+            label: 'Открой ОАЭ!',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.article), label: 'Новости'),
         ],
       ),
