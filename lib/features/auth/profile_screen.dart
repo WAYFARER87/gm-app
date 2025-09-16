@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/api_service.dart';
-import '../../core/widgets/auth_gate.dart';
 import 'user_profile.dart';
 import 'club_card.dart';
 
@@ -111,17 +109,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await _api.logout();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    if (!mounted) return;
-    // Обновляем состояние авторизации и возвращаемся к корневому экрану,
-    // где [AuthGate] покажет экран входа.
-    AuthGate.of(context)?.refreshAuthState();
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
   Future<void> _deleteProfile() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -147,7 +134,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isDeleting = true);
     try {
       await _api.deleteProfile();
-      await _logout();
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -324,17 +313,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Удалить профиль'),
-          ),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: _logout,
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Выйти'),
           ),
         ),
       ),

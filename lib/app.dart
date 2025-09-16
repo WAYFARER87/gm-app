@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'features/home/home_screen.dart';
-import 'core/widgets/auth_gate.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -94,7 +93,7 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
       ),
-      home: const AuthGate(child: HomeScreen()),
+      home: const HomeScreen(),
     );
   }
 }
