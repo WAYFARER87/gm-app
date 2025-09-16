@@ -11,8 +11,8 @@ import 'package:geolocator/geolocator.dart';
 
 import 'recommendation_detail_screen.dart';
 import 'recommendation_model.dart';
-import '../mclub/category_model.dart';
-import '../mclub/icon_utils.dart';
+import 'category.dart';
+import 'icon_utils.dart';
 
 class RecommendationsMapScreen extends StatefulWidget {
   final List<dynamic> recommendations;

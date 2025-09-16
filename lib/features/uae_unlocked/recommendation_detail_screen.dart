@@ -8,7 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/api_service.dart';
 import 'recommendation_model.dart';
-import '../mclub/widgets/rating_widget.dart';
+import 'widgets/rating_widget.dart';
 import '../../core/utils/image_brightness.dart';
 
 class RecommendationDetailScreen extends StatefulWidget {
@@ -174,7 +174,7 @@ class _RecommendationDetailScreenState extends State<RecommendationDetailScreen>
     if (id == null) return;
     setState(() => _isVoting = true);
     try {
-      final res = await _api.voteBenefit(id, vote);
+      final res = await _api.voteRecommendation(id, vote);
       if (!mounted) return;
       setState(() {
         final newRating = int.tryParse(res['rating']?.toString() ?? '');
