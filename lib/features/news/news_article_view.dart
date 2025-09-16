@@ -258,6 +258,9 @@ class _NewsArticleViewState extends State<NewsArticleView> {
                       data: item.contentFull,
                       style: {
                         '*': Style(fontSize: FontSize(18 * _textScaleFactor)),
+                        'p': Style(margin: Margins.only(top: 0, bottom: 12)),
+                        'ul': Style(margin: Margins.only(top: 0, bottom: 12)),
+                        'ol': Style(margin: Margins.only(top: 0, bottom: 12)),
                       },
                     ),
                   ],
