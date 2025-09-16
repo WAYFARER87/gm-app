@@ -117,7 +117,14 @@ class NewsApiService {
       pages = (total / safePerPage).ceil();
     }
 
-    return NewsPage(items: items, page: pageNum, pages: pages, total: total);
+    final pagesCount = pages ?? (total / safePerPage).ceil();
+
+    return NewsPage(
+      items: items,
+      page: pageNum,
+      pages: pagesCount,
+      total: total,
+    );
   }
 
   String _resolveLang() {
