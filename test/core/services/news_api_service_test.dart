@@ -22,15 +22,17 @@ void main() {
             Response(
               requestOptions: options,
               data: {
-                'data': [
-                  {'id': 1, 'title': 'First'},
-                  {'id': 2, 'title': 'Second'},
-                ],
-                'pagination': {
-                  'page': 2,
-                  'perPage': 10,
-                  'total': 20,
-                  'pages': 2,
+                'data': {
+                  'items': [
+                    {'id': 1, 'title': 'First'},
+                    {'id': 2, 'title': 'Second'},
+                  ],
+                  'pagination': {
+                    'current_page': 2,
+                    'per_page': 10,
+                    'total': 20,
+                    'last_page': 2,
+                  },
                 },
               },
             ),
@@ -54,15 +56,19 @@ void main() {
             Response(
               requestOptions: options,
               data: {
-                'data': [
-                  {'id': 1, 'title': 'First'},
-                  {'id': 2, 'title': 'Second'},
-                ],
-                'pagination': {
-                  'page': '2',
-                  'perPage': '10',
-                  'total': '20',
-                  'pages': '2',
+                'data': {
+                  'items': [
+                    {'id': 1, 'title': 'First'},
+                    {'id': 2, 'title': 'Second'},
+                  ],
+                  'meta': {
+                    'pagination': {
+                      'current_page': '2',
+                      'per_page': '10',
+                      'total': '20',
+                      'total_pages': '2',
+                    },
+                  },
                 },
               },
             ),
@@ -86,13 +92,15 @@ void main() {
             Response(
               requestOptions: options,
               data: {
-                'data': [
-                  {'id': 1, 'title': 'Only'},
-                ],
-                'pagination': {
-                  'page': 1,
-                  'perPage': 8,
-                  'total': 15,
+                'data': {
+                  'items': [
+                    {'id': 1, 'title': 'Only'},
+                  ],
+                  'pagination': {
+                    'current_page': 1,
+                    'per_page': 8,
+                    'total': 15,
+                  },
                 },
               },
             ),
@@ -108,24 +116,26 @@ void main() {
     expect(page.pages, 2);
   });
 
-  test('fetchNews sends category id when provided', () async {
+  test('fetchNews sends feed id when provided', () async {
     String? passedCategoryId;
     service.dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          passedCategoryId = options.queryParameters['category_id']?.toString();
+          passedCategoryId = options.queryParameters['feed_id']?.toString();
           handler.resolve(
             Response(
               requestOptions: options,
               data: {
-                'data': [
-                  {'id': 1, 'title': 'Only'},
-                ],
-                'pagination': {
-                  'page': 1,
-                  'perPage': 10,
-                  'total': 1,
-                  'pages': 1,
+                'data': {
+                  'items': [
+                    {'id': 1, 'title': 'Only'},
+                  ],
+                  'pagination': {
+                    'current_page': 1,
+                    'per_page': 10,
+                    'total': 1,
+                    'last_page': 1,
+                  },
                 },
               },
             ),

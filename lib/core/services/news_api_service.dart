@@ -11,7 +11,7 @@ class NewsApiService {
   NewsApiService._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://russianemirates.com/api/v4/',
+        baseUrl: 'https://gorodmore.ru/api/',
         headers: {
           'Content-Type': 'application/json',
           'Accept-Language': _resolveLang(),
@@ -29,21 +29,23 @@ class NewsApiService {
 
   /// Получить список новостных лент (feeds)
   Future<List<NewsCategory>> fetchFeeds() async {
-    final res = await _dio.get('news/feeds/');
+    final res = await _dio.get('news/feeds');
     final raw = res.data;
-    final data = raw is Map && raw['data'] is List ? raw['data'] : raw;
+    final payload = _unwrapResponse(raw);
 
     final categories = <NewsCategory>[];
-    if (data is List) {
+    final data = _extractList(payload) ?? _extractList(raw);
+    if (data != null) {
       for (final item in data) {
         if (item is Map<String, dynamic>) {
           categories.add(NewsCategory.fromJson(item));
         }
       }
-    } else if (data is Map) {
-      for (final item in data.values) {
-        if (item is Map<String, dynamic>) {
-          categories.add(NewsCategory.fromJson(item));
+    } else if (payload is Map) {
+      for (final entry in payload.entries) {
+        if (entry.value is Map<String, dynamic>) {
+          categories
+              .add(NewsCategory.fromJson(entry.value as Map<String, dynamic>));
         }
       }
     }
@@ -56,31 +58,16 @@ class NewsApiService {
     int perPage = 20,
     String? categoryId,
   }) async {
-    final params = <String, dynamic>{'page': page, 'per-page': perPage};
+    final params = <String, dynamic>{'page': page, 'perPage': perPage};
     if (categoryId?.isNotEmpty ?? false) {
-      params['category_id'] = categoryId;
+      params['feed_id'] = categoryId;
     }
 
-    final res = await _dio.get('news/', queryParameters: params);
+    final res = await _dio.get('news', queryParameters: params);
     final raw = res.data;
+    final payload = _unwrapResponse(raw);
 
-    List? rawItems;
-    if (raw is List) {
-      rawItems = raw;
-    } else if (raw is Map) {
-      if (raw['data'] is List) {
-        rawItems = raw['data'] as List;
-      } else if (raw['news'] is List) {
-        rawItems = raw['news'] as List;
-      } else if (raw['items'] is List) {
-        rawItems = raw['items'] as List;
-      } else {
-        final firstList = raw.values.whereType<List>().toList();
-        if (firstList.isNotEmpty) {
-          rawItems = firstList.first;
-        }
-      }
-    }
+    final rawItems = _extractList(payload) ?? _extractList(raw);
 
     if (rawItems == null || rawItems.isEmpty) {
       throw Exception('No news items found in response');
@@ -97,38 +84,38 @@ class NewsApiService {
       throw Exception('No news items could be parsed');
     }
 
-    final pagination = raw is Map && raw['pagination'] is Map
-        ? raw['pagination'] as Map
-        : const {};
+    final pagination = _extractPagination(payload) ??
+        _extractPagination(raw) ??
+        const {};
 
-    final pageRaw = pagination['page'];
-    final pageNum = pageRaw is num
-        ? pageRaw.toInt()
-        : pageRaw is String
-            ? int.tryParse(pageRaw) ?? page
-            : page;
+    final pageNum =
+        _parseInt(pagination['page'] ?? pagination['current_page']) ?? page;
 
-    final perPageRaw = pagination['perPage'];
-    final perPageVal = perPageRaw is num
-        ? perPageRaw.toInt()
-        : perPageRaw is String
-            ? int.tryParse(perPageRaw) ?? perPage
-            : perPage;
+    final perPageVal = _parseInt(
+          pagination['perPage'] ?? pagination['per_page'] ?? pagination['limit'],
+        ) ??
+        perPage;
 
-    final totalRaw = pagination['total'];
-    final total = totalRaw is num
-        ? totalRaw.toInt()
-        : totalRaw is String
-            ? int.tryParse(totalRaw) ?? items.length
-            : items.length;
+    final total = _parseInt(
+          pagination['total'] ??
+              pagination['total_items'] ??
+              pagination['totalItems'] ??
+              pagination['count'],
+        ) ??
+        items.length;
 
-    final pagesRaw = pagination['pages'];
-    int? pages = pagesRaw is num
-        ? pagesRaw.toInt()
-        : pagesRaw is String
-            ? int.tryParse(pagesRaw)
-            : null;
-    pages ??= (total / perPageVal).ceil();
+    int? pages = _parseInt(
+      pagination['pages'] ??
+          pagination['last_page'] ??
+          pagination['total_pages'] ??
+          pagination['lastPage'],
+    );
+    final safePerPage = perPageVal > 0
+        ? perPageVal
+        : (items.isNotEmpty ? items.length : 1);
+    if (pages == null && safePerPage > 0) {
+      pages = (total / safePerPage).ceil();
+    }
 
     return NewsPage(items: items, page: pageNum, pages: pages, total: total);
   }
@@ -137,5 +124,136 @@ class NewsApiService {
     final code = ui.PlatformDispatcher.instance.locale.languageCode
         .toLowerCase();
     return code == 'ru' ? 'ru' : 'en';
+  }
+
+  dynamic _unwrapResponse(dynamic raw) {
+    if (raw is Map) {
+      for (final key in const ['data', 'result', 'payload']) {
+        if (raw[key] != null) {
+          return raw[key];
+        }
+      }
+    }
+    return raw;
+  }
+
+  List<dynamic>? _extractList(dynamic data) {
+    if (data is List) {
+      return data;
+    }
+    if (data is Map) {
+      for (final key in const ['items', 'news', 'feeds', 'list', 'results', 'data']) {
+        if (data.containsKey(key)) {
+          final list = _extractList(data[key]);
+          if (list != null) {
+            return list;
+          }
+        }
+      }
+
+      final mapValues = <Map<String, dynamic>>[];
+      data.forEach((key, value) {
+        final keyStr = key.toString();
+        if ({'pagination', 'meta', '_meta', 'links', '_links'}.contains(keyStr)) {
+          return;
+        }
+        if (value is Map<String, dynamic>) {
+          mapValues.add(value);
+        }
+      });
+      if (mapValues.isNotEmpty) {
+        return mapValues;
+      }
+
+      for (final entry in data.entries) {
+        final keyStr = entry.key.toString();
+        if ({'pagination', 'meta', '_meta', 'links', '_links'}.contains(keyStr)) {
+          continue;
+        }
+        final list = _extractList(entry.value);
+        if (list != null) {
+          return list;
+        }
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? _extractPagination(dynamic source) {
+    if (source is Map) {
+      for (final key in const ['pagination', 'meta']) {
+        final value = source[key];
+        if (value is Map) {
+          if (_looksLikePagination(value)) {
+            return value.map((k, v) => MapEntry(k.toString(), v));
+          }
+          final nested = _extractPagination(value);
+          if (nested != null) {
+            return nested;
+          }
+        }
+      }
+
+      for (final entry in source.entries) {
+        final value = entry.value;
+        if (value is Map) {
+          if (_looksLikePagination(value)) {
+            return value.map((k, v) => MapEntry(k.toString(), v));
+          }
+          final nested = _extractPagination(value);
+          if (nested != null) {
+            return nested;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  bool _looksLikePagination(Map<dynamic, dynamic> map) {
+    const keys = {
+      'page',
+      'current_page',
+      'currentPage',
+      'per_page',
+      'perPage',
+      'limit',
+      'total',
+      'total_items',
+      'totalItems',
+      'count',
+      'pages',
+      'last_page',
+      'lastPage',
+      'total_pages',
+      'totalPages',
+    };
+    for (final key in map.keys) {
+      if (keys.contains(key.toString())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      final parsed = int.tryParse(trimmed);
+      if (parsed != null) {
+        return parsed;
+      }
+      final asDouble = double.tryParse(trimmed);
+      if (asDouble != null) {
+        return asDouble.toInt();
+      }
+    }
+    return null;
   }
 }
