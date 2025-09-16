@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../mclub/mclub_screen.dart';
 import '../uae_unlocked/uae_unlocked_screen.dart';
-import '../radio/radio_screen.dart';
 import '../news/news_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _pages = [
       MClubScreen(showNearbyOnly: widget.showNearbyOnly),
       const UAEUnlockedScreen(),
-      const RadioScreen(),
       const NewsScreen(),
     ];
   }
@@ -58,7 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.local_offer), label: 'GorodMore.ru'),
           BottomNavigationBarItem(icon: Icon(Icons.travel_explore), label: 'Открой ОАЭ!'),
-          BottomNavigationBarItem(icon: Icon(Icons.radio), label: 'Радио'),
           BottomNavigationBarItem(icon: Icon(Icons.article), label: 'Новости'),
         ],
       ),

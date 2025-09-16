@@ -35,10 +35,6 @@ dependencies:
   device_info_plus: ^10.1.0
 
   # Мультимедиа и ссылки
-  just_audio: ^0.9.38
-  audio_service: ^0.18.18
-  audio_session: ^0.1.25
-  rxdart: ^0.27.7
   url_launcher: ^6.3.0
 
   # UI
