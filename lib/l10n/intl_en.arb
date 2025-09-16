@@ -1,0 +1,11 @@
+{
+  "appTitle": "M Club",
+  "login": "Login",
+  "register": "Register",
+  "clubCard": "Club Card",
+  "profile": "Profile",
+  "cancel": "Cancel",
+  "save": "Save",
+  "retry": "Retry",
+  "logout": "Logout"
+}
