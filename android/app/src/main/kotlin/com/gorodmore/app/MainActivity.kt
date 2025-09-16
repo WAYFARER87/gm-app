@@ -1,4 +1,4 @@
-package com.mclub.app
+package com.gorodmore.app
 
 import android.content.Context
 import android.util.Log
