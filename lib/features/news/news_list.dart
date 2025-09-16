@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/services/news_api_service.dart';
+import '../../core/utils/html_utils.dart';
 import '../../core/utils/time_ago.dart';
 import 'models/news_item.dart';
 import 'package:share_plus/share_plus.dart';
@@ -172,6 +173,7 @@ class NewsListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageHeight = MediaQuery.of(context).size.width * 0.6;
+    final previewPlain = htmlToPlainText(item.contentPreview);
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -219,17 +221,18 @@ class NewsListItem extends StatelessWidget {
                     fontFamily: 'Roboto',
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    item.contentPreview,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w300,
-                      fontFamily: 'Roboto',
+                if (previewPlain.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      previewPlain,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w300,
+                        fontFamily: 'Roboto',
+                      ),
                     ),
                   ),
-                ),
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Row(

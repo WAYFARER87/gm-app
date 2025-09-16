@@ -4,6 +4,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/utils/html_utils.dart';
 import '../../core/utils/image_brightness.dart';
 import '../../core/utils/time_ago.dart';
 import 'models/news_item.dart';
@@ -91,10 +92,7 @@ class _NewsArticleViewState extends State<NewsArticleView> {
         ? SystemUiOverlayStyle.dark
         : (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark);
 
-    final descPlain = item.contentPreview
-        .replaceAll(RegExp(r'<[^>]*>'), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+    final descPlain = htmlToPlainText(item.contentPreview);
 
     final meta = [
       if (item.published != null) timeAgo(item.published),
