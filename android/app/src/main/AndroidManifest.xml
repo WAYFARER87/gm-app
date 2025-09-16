@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
-        android:label="m_club"
+        android:label="GorodMore.ru"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

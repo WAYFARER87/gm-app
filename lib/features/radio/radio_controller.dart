@@ -332,7 +332,7 @@ class RadioController extends ChangeNotifier {
         builder: () => RadioAudioHandler(_player),
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'm_club_radio_channel',
-          androidNotificationChannelName: 'M-Club Radio',
+          androidNotificationChannelName: 'GorodMore.ru Radio',
           androidNotificationIcon: 'drawable/radio_notification_icon',
           androidNotificationOngoing: true,
         ),
