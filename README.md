@@ -16,7 +16,7 @@ described in the ТЗ (ТЗ_MClub_v4.docx).
   - main.dart         -- app entry
   - app.dart          -- MaterialApp, router placeholder
   - core/             -- constants, services, widgets
-  - features/         -- auth, mclub, uae_unlocked, radio, news, home
+  - features/         -- home, news
   - l10n/             -- localization arb files
 
 This template is purposely minimal and intended as a starting point.

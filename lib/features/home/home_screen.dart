@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../uae_unlocked/uae_unlocked_screen.dart';
 import '../news/news_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,7 +14,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const _primary = Color(0xFF182857);
   static const List<Widget> _pages = [
-    UAEUnlockedScreen(),
     NewsScreen(),
   ];
 
@@ -43,10 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.travel_explore),
-            label: 'Открой ОАЭ!',
-          ),
           BottomNavigationBarItem(icon: Icon(Icons.article), label: 'Новости'),
         ],
       ),
