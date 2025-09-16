@@ -14,6 +14,8 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _primary = Color(0xFF182857);
   static const List<Widget> _pages = [
     NewsScreen(),
+    Center(child: Text('События')),
+    Center(child: Text('Афиша')),
   ];
 
   @override
@@ -41,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (i) => setState(() => _index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.article), label: 'Новости'),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'События'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_activity), label: 'Афиша'),
         ],
       ),
     );
