@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:m_club/core/utils/parse_bool.dart';
 import 'package:m_club/features/auth/user_profile.dart';
 
@@ -16,42 +15,12 @@ class ApiService {
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json', 'Accept-Language': _resolveLang(),},
     ));
-
-    // Добавляем interceptor для токена
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _storage.read(key: 'auth_token');
-        if (token != null) {
-          options.headers['Authorization'] = '$token';
-        }
-        handler.next(options);
-      },
-    ));
   }
 
   late Dio _dio;
-  final _storage = const FlutterSecureStorage();
 
   @visibleForTesting
   Dio get dio => _dio;
-
-  /// Запрос кода по email
-  Future<void> requestCode(String email) async {
-    final formData = FormData.fromMap({'email': email});
-    await _dio.post('/user/request-code', data: formData);
-  }
-
-  /// Проверка кода и получение токена
-  Future<bool> verifyCode(String email, String code) async {
-    final formData = FormData.fromMap({'email': email, 'code': code});
-    final res = await _dio.post('/user/verify-code', data: formData);
-
-    if (res.data != null && res.data['token'] != null) {
-      await _storage.write(key: 'auth_token', value: res.data['token']);
-      return true;
-    }
-    return false;
-  }
 
   /// Получить профиль пользователя
   Future<UserProfile> fetchProfile() async {
@@ -237,22 +206,6 @@ class ApiService {
         print('deleteProfile error: $e');
       }
       rethrow;
-    }
-  }
-
-  /// Очистить токен (логаут)
-  Future<void> logout() async {
-    await _storage.delete(key: 'auth_token');
-  }
-
-  /// Проверка, есть ли сохранённый токен
-  Future<bool> isLoggedIn() async {
-    try {
-      final token = await _storage.read(key: 'auth_token');
-      return token != null;
-    } catch (e) {
-      debugPrint('isLoggedIn error: $e');
-      return false;
     }
   }
   String _resolveLang() {
