@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         title: Image.asset(
           'assets/images/logo_light_mobile.png',
-          height: 60,
+          height: 30,
           fit: BoxFit.contain,
         ),
       ),
