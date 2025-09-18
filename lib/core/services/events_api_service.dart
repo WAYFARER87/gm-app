@@ -61,11 +61,11 @@ class EventsApiService {
   Future<EventPage> fetchEvents({
     int page = 1,
     int perPage = 20,
-    String? feedId,
+    String? categoryId,
   }) async {
     final params = <String, dynamic>{'page': page, 'perPage': perPage};
-    if (feedId != null && feedId.isNotEmpty) {
-      params['feed_id'] = feedId;
+    if (categoryId != null && categoryId.isNotEmpty) {
+      params['category_id'] = categoryId;
     }
 
     final res = await _dio.get('events', queryParameters: params);
