@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:m_club/features/events/events_detail_screen.dart';
 import 'package:m_club/features/events/events_list.dart';
 import 'package:m_club/features/events/models/event_item.dart';
 
@@ -82,5 +83,48 @@ void main() {
 
     expect(find.textContaining('Музыка'), findsOneWidget);
     expect(find.textContaining('Фолбэк'), findsNothing);
+  });
+
+  testWidgets('EventListItem uses raw time when date parsing fails', (tester) async {
+    final item = EventItem.fromJson({
+      'id': 12,
+      'feed_id': '310',
+      'title': 'Time Only Event',
+      'time': '19:30',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EventListItem(item: item),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('19:30'), findsOneWidget);
+  });
+
+  testWidgets('EventDetailScreen shows raw time fallback when needed',
+      (tester) async {
+    final item = EventItem.fromJson({
+      'id': 13,
+      'feed_id': '320',
+      'title': 'Detail Time Event',
+      'time': '21:00',
+      'description': '',
+      'summary': '',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EventDetailScreen(item: item),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('21:00'), findsOneWidget);
   });
 }

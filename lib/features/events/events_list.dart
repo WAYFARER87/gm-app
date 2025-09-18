@@ -194,6 +194,7 @@ class EventListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = formatEventDateRange(item.startDate, item.endDate);
+    final fallbackDate = item.fallbackDateText;
     final theme = Theme.of(context);
     const posterWidth = 120.0;
     const posterAspectRatio = 3 / 4;
@@ -231,7 +232,9 @@ class EventListItem extends StatelessWidget {
     ];
     final categoryText =
         categoryCandidates.isNotEmpty ? categoryCandidates.first : 'Не указана';
-    final dateText = date.isNotEmpty ? date : 'Не указана';
+    final dateText = date.isNotEmpty
+        ? date
+        : (fallbackDate.isNotEmpty ? fallbackDate : 'Не указана');
 
     Widget buildPoster() {
       final borderRadius = BorderRadius.circular(12);

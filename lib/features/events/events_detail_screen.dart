@@ -22,6 +22,7 @@ class EventDetailScreen extends StatelessWidget {
       item.endDate,
       includeWeekday: true,
     );
+    final dateText = date.isNotEmpty ? date : item.fallbackDateText;
 
     return Scaffold(
       appBar: AppBar(
@@ -70,10 +71,10 @@ class EventDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (date.isNotEmpty)
+                if (dateText.isNotEmpty)
                   _InfoRow(
                     icon: Icons.schedule,
-                    text: date,
+                    text: dateText,
                   ),
                 if (item.venueName.isNotEmpty || item.venueAddress.isNotEmpty)
                   Padding(

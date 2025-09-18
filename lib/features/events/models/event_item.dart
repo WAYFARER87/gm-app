@@ -11,6 +11,8 @@ class EventItem {
   final String phone;
   final DateTime? startDate;
   final DateTime? endDate;
+  final String startTimeText;
+  final String endTimeText;
   final String venueName;
   final String venueAddress;
   final String categoryName;
@@ -28,48 +30,181 @@ class EventItem {
     required this.phone,
     this.startDate,
     this.endDate,
+    this.startTimeText = '',
+    this.endTimeText = '',
     required this.venueName,
     required this.venueAddress,
     required this.categoryName,
   });
 
+  String get fallbackDateText {
+    final startText = startTimeText.trim();
+    final endText = endTimeText.trim();
+    if (startText.isEmpty && endText.isEmpty) {
+      return '';
+    }
+    if (startText.isEmpty) {
+      return endText;
+    }
+    if (endText.isEmpty || startText == endText) {
+      return startText;
+    }
+    return '$startText – $endText';
+  }
+
   factory EventItem.fromJson(Map<String, dynamic> json) {
     final schedule = json['schedule'];
     DateTime? start;
     DateTime? end;
-    if (schedule is Map<String, dynamic>) {
-      start = _parseDateTime(
-            schedule['start'] ??
-                schedule['start_time'] ??
-                schedule['from'] ??
-                schedule['date_start'] ??
-                schedule['begin'],
-          ) ??
-          _parseDateTime(schedule['date']);
-      end = _parseDateTime(
-        schedule['end'] ??
-            schedule['end_time'] ??
-            schedule['to'] ??
-            schedule['date_end'] ??
-            schedule['finish'],
-      );
+    String startTimeText = '';
+    String endTimeText = '';
+
+    Map<String, dynamic>? combineDateAndTime(dynamic date, dynamic time) {
+      final hasDate = _stringifyDateCandidate(date).isNotEmpty;
+      final hasTime = _stringifyDateCandidate(time).isNotEmpty;
+      if (!hasDate && !hasTime) {
+        return null;
+      }
+      return <String, dynamic>{
+        if (date != null) 'date': date,
+        if (time != null) 'time': time,
+      };
     }
 
-    start ??= _parseDateTime(
-      json['start'] ??
-          json['start_time'] ??
-          json['startDate'] ??
-          json['start_date'] ??
-          json['date_start'] ??
-          json['date'],
+    final startCandidates = <dynamic>[];
+    final endCandidates = <dynamic>[];
+
+    final scheduleMap = schedule is Map<String, dynamic> ? schedule : null;
+    if (scheduleMap != null) {
+      final scheduleDate = scheduleMap['date'] ?? scheduleMap['day'];
+      final scheduleStartDate = scheduleMap['date_start'] ?? scheduleDate;
+      final scheduleEndDate = scheduleMap['date_end'] ?? scheduleDate;
+
+      startCandidates.addAll([
+        scheduleMap['start'],
+        scheduleMap['start_time'],
+        scheduleMap['from'],
+        scheduleMap['date_start'],
+        scheduleMap['begin'],
+        combineDateAndTime(
+          scheduleStartDate,
+          scheduleMap['time'] ??
+              scheduleMap['start_time'] ??
+              scheduleMap['clock'],
+        ),
+        scheduleMap['date'],
+        scheduleMap['time'],
+      ]);
+
+      endCandidates.addAll([
+        scheduleMap['end'],
+        scheduleMap['end_time'],
+        scheduleMap['to'],
+        scheduleMap['date_end'],
+        scheduleMap['finish'],
+        combineDateAndTime(
+          scheduleEndDate,
+          scheduleMap['time_end'] ??
+              scheduleMap['end_time'] ??
+              scheduleMap['finish_time'],
+        ),
+        scheduleMap['time_end'],
+      ]);
+    }
+
+    final baseDate = json['date'];
+    final startDatePart = json['date_start'] ??
+        json['start_date'] ??
+        json['startDate'] ??
+        baseDate;
+    final endDatePart = json['date_end'] ??
+        json['end_date'] ??
+        json['endDate'] ??
+        baseDate;
+
+    startCandidates.addAll([
+      json['start'],
+      json['start_time'],
+      json['startDate'],
+      json['start_date'],
+      json['date_start'],
+      combineDateAndTime(
+        startDatePart,
+        json['time'] ??
+            json['start_time'] ??
+            json['time_start'] ??
+            json['timeStart'],
+      ),
+      baseDate,
+      json['time'],
+      json['time_start'],
+      json['timeStart'],
+    ]);
+
+    endCandidates.addAll([
+      json['end'],
+      json['end_time'],
+      json['endDate'],
+      json['end_date'],
+      json['date_end'],
+      combineDateAndTime(
+        endDatePart,
+        json['time_end'] ??
+            json['end_time'] ??
+            json['time_finish'] ??
+            json['timeEnd'],
+      ),
+      json['time_end'],
+      json['timeEnd'],
+    ]);
+
+    start = _parseFromCandidates(
+      startCandidates,
+      (value) {
+        if (startTimeText.isEmpty) {
+          startTimeText = value;
+        }
+      },
     );
-    end ??= _parseDateTime(
-      json['end'] ??
-          json['end_time'] ??
-          json['endDate'] ??
-          json['end_date'] ??
-          json['date_end'],
+    end = _parseFromCandidates(
+      endCandidates,
+      (value) {
+        if (endTimeText.isEmpty) {
+          endTimeText = value;
+        }
+      },
     );
+
+    final explicitStartTime = _firstNonEmptyString([
+      json['time'],
+      json['time_start'],
+      json['timeStart'],
+      if (scheduleMap != null) ...[
+        scheduleMap['time'],
+        scheduleMap['start_time'],
+        scheduleMap['clock'],
+      ],
+    ]);
+    if (explicitStartTime.isNotEmpty) {
+      startTimeText = explicitStartTime;
+    }
+
+    final explicitEndTime = _firstNonEmptyString([
+      json['time_end'],
+      json['timeEnd'],
+      json['end_time'],
+      json['endTime'],
+      json['time_finish'],
+      json['timeFinish'],
+      if (scheduleMap != null) ...[
+        scheduleMap['time_end'],
+        scheduleMap['end_time'],
+        scheduleMap['finish'],
+      ],
+    ]);
+    if (explicitEndTime.isNotEmpty) {
+      endTimeText = explicitEndTime;
+    }
 
     final location = json['location'] ?? json['place'] ?? json['venue'];
     String venueName = '';
@@ -137,10 +272,74 @@ class EventItem {
       phone: (json['phone'] ?? json['contact_phone'] ?? '').toString(),
       startDate: start,
       endDate: end,
+      startTimeText: startTimeText,
+      endTimeText: endTimeText,
       venueName: venueName,
       venueAddress: venueAddress,
       categoryName: _extractCategoryName(json),
     );
+  }
+
+  static DateTime? _parseFromCandidates(
+    List<dynamic> candidates,
+    void Function(String) onFallback,
+  ) {
+    for (final candidate in candidates) {
+      if (candidate == null) continue;
+      final parsed = _parseDateTime(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+      final fallback = _stringifyDateCandidate(candidate);
+      if (fallback.isNotEmpty) {
+        onFallback(fallback);
+      }
+    }
+    return null;
+  }
+
+  static String _firstNonEmptyString(Iterable<dynamic> values) {
+    for (final value in values) {
+      final text = _stringifyDateCandidate(value);
+      if (text.isNotEmpty) {
+        return text;
+      }
+    }
+    return '';
+  }
+
+  static String _stringifyDateCandidate(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value.trim();
+    if (value is num) return value.toString();
+    if (value is bool) return value ? 'true' : 'false';
+    if (value is Iterable) {
+      for (final element in value) {
+        final text = _stringifyDateCandidate(element);
+        if (text.isNotEmpty) {
+          return text;
+        }
+      }
+      return '';
+    }
+    if (value is Map) {
+      for (final key in const ['time', 'date', 'value', 'text', 'label', 'display']) {
+        if (value.containsKey(key)) {
+          final text = _stringifyDateCandidate(value[key]);
+          if (text.isNotEmpty) {
+            return text;
+          }
+        }
+      }
+      for (final entry in value.values) {
+        final text = _stringifyDateCandidate(entry);
+        if (text.isNotEmpty) {
+          return text;
+        }
+      }
+      return '';
+    }
+    return value.toString().trim();
   }
 
   static DateTime? _parseDateTime(dynamic value) {
