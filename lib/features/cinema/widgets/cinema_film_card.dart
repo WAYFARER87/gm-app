@@ -108,7 +108,10 @@ class CinemaFilmCard extends StatelessWidget {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
     final parsed = int.tryParse(trimmed);
-    if (parsed != null && parsed > 0) {
+    if (parsed != null) {
+      if (parsed <= 0) {
+        return null;
+      }
       return '$parsed мин';
     }
     return trimmed;
