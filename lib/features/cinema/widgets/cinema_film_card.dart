@@ -73,6 +73,16 @@ class CinemaFilmCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 20),
+                Text(
+                  'Сеансы',
+                  style: (textTheme.titleMedium ?? textTheme.titleSmall ??
+                          const TextStyle())
+                      .copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (groups.isNotEmpty && showtimesByCinema.isNotEmpty)
                   _ShowtimeScheduleTable(
                     dayLabels: groups.keys.toList(),
