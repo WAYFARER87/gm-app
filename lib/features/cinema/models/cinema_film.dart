@@ -57,9 +57,8 @@ class CinemaFilm {
       replyCount: _parseInt(json['replys']),
       description: filmdata is Map ? _nullableString(filmdata['description']) : null,
       year: filmdata is Map ? _nullableString(filmdata['year']) : null,
-      country: filmdata is Map
-          ? _nullableString(filmdata['country'] ?? filmdata['countries'])
-          : null,
+      country:
+          filmdata is Map ? _nullableString(filmdata['country']) : null,
       poster: filmdata is Map ? _nullableString(filmdata['poster']) : null,
       showtimes: _parseShowtimes(json['showtimes']),
     );
