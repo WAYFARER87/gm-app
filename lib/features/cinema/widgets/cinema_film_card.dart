@@ -27,59 +27,84 @@ class CinemaFilmCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 2,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Poster(imageUrl: film.imageUrl),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 640;
+          final contentPadding = EdgeInsets.fromLTRB(
+            isCompact ? 16 : 24,
+            isCompact ? 20 : 24,
+            isCompact ? 16 : 24,
+            24,
+          );
+
+          final details = Padding(
+            padding: contentPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  film.name.isNotEmpty ? film.name : 'Без названия',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: (textTheme.headlineSmall ?? const TextStyle()).copyWith(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                if (infoChips.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: infoChips,
+                  ),
+                ],
+                if (description != null && description.isNotEmpty) ...[
+                  const SizedBox(height: 16),
                   Text(
-                    film.name.isNotEmpty ? film.name : 'Без названия',
-                    style: (textTheme.headlineSmall ?? const TextStyle()).copyWith(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
+                    htmlToPlainText(description),
+                    style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.8),
+                      height: 1.45,
                     ),
                   ),
-                  if (infoChips.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: infoChips,
-                    ),
-                  ],
-                  if (description != null && description.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      htmlToPlainText(description),
-                      style: (textTheme.bodyMedium ?? const TextStyle())
-                          .copyWith(height: 1.4),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  if (groups.isNotEmpty && showtimesByCinema.isNotEmpty) ...[
-                    _ShowtimeScheduleTable(
-                      dayLabels: groups.keys.toList(),
-                      cinemaShowtimes: showtimesByCinema,
-                    ),
-                  ] else
-                    Text(
-                      'Нет ближайших сеансов',
-                      style:
-                          (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
                 ],
-              ),
+                const SizedBox(height: 20),
+                if (groups.isNotEmpty && showtimesByCinema.isNotEmpty)
+                  _ShowtimeScheduleTable(
+                    dayLabels: groups.keys.toList(),
+                    cinemaShowtimes: showtimesByCinema,
+                  )
+                else
+                  Text(
+                    'Нет ближайших сеансов',
+                    style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+              ],
             ),
-          ),
-        ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Poster(imageUrl: film.imageUrl, isCompact: true),
+                details,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Poster(imageUrl: film.imageUrl, isCompact: false),
+              Expanded(child: details),
+            ],
+          );
+        },
       ),
     );
   }
@@ -178,10 +203,11 @@ class CinemaFilmCard extends StatelessWidget {
 }
 
 class _Poster extends StatelessWidget {
-  const _Poster({required this.imageUrl});
+  const _Poster({required this.imageUrl, required this.isCompact});
 
-  static const double _posterWidth = 132.0;
+  static const double _posterWidth = 136.0;
   final String imageUrl;
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
@@ -199,11 +225,31 @@ class _Poster extends StatelessWidget {
             errorBuilder: (_, __, ___) => placeholder(),
           );
 
+    final borderRadius = isCompact
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          )
+        : const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            bottomLeft: Radius.circular(20),
+          );
+
+    if (isCompact) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: SizedBox(
+          width: double.infinity,
+          child: AspectRatio(
+            aspectRatio: 3 / 4,
+            child: poster,
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(20),
-        bottomLeft: Radius.circular(20),
-      ),
+      borderRadius: borderRadius,
       child: SizedBox(
         width: _posterWidth,
         child: AspectRatio(
@@ -272,63 +318,101 @@ class _ShowtimeScheduleTable extends StatelessWidget {
 
     final headerStyle = (textTheme.bodySmall ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w600,
-      color: colorScheme.onSurface.withOpacity(0.6),
+      color: colorScheme.onSurface.withOpacity(0.7),
+      letterSpacing: 0.2,
     );
     final cinemaStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w600,
       color: colorScheme.onSurface,
     );
     final timeStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+      fontWeight: FontWeight.w600,
       color: colorScheme.onSurface,
     );
     final emptyStyle = timeStyle.copyWith(
+      fontWeight: FontWeight.w400,
       color: colorScheme.onSurface.withOpacity(0.4),
     );
+    final borderColor = colorScheme.outline.withOpacity(0.16);
+    final headerColor = colorScheme.surfaceVariant.withOpacity(0.6);
+    final chipColor = colorScheme.primary.withOpacity(0.08);
 
-    return Table(
-      columnWidths: {
-        0: const IntrinsicColumnWidth(),
-        for (var i = 1; i <= dayLabels.length; i++) i: const FlexColumnWidth(),
-      },
-      defaultVerticalAlignment: TableCellVerticalAlignment.top,
-      children: [
-        TableRow(
+    Widget buildTable() {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Table(
+          columnWidths: {
+            0: const IntrinsicColumnWidth(),
+            for (var i = 1; i <= dayLabels.length; i++) i: const FlexColumnWidth(),
+          },
+          border: TableBorder(
+            horizontalInside: BorderSide(color: borderColor, width: 1),
+            verticalInside: BorderSide(color: borderColor, width: 1),
+            top: BorderSide(color: borderColor, width: 1),
+            bottom: BorderSide(color: borderColor, width: 1),
+            left: BorderSide(color: borderColor, width: 1),
+            right: BorderSide(color: borderColor, width: 1),
+          ),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           children: [
-            _ScheduleCell(
-              child: Text('Кинотеатр', style: headerStyle),
-            ),
-            for (final day in dayLabels)
-              _ScheduleCell(
-                alignCenter: true,
-                child: Text(
-                  _formatDayLabel(day),
-                  style: headerStyle,
-                  textAlign: TextAlign.center,
+            TableRow(
+              decoration: BoxDecoration(color: headerColor),
+              children: [
+                _ScheduleCell(
+                  child: Text('Кинотеатр', style: headerStyle),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 ),
+                for (final day in dayLabels)
+                  _ScheduleCell(
+                    alignCenter: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    child: Text(
+                      _formatDayLabel(day),
+                      style: headerStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+            for (final cinemaEntry in cinemaShowtimes.entries)
+              TableRow(
+                children: [
+                  _ScheduleCell(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                    child: Text(
+                      _formatCinemaName(cinemaEntry.key),
+                      style: cinemaStyle,
+                    ),
+                  ),
+                  for (final day in dayLabels)
+                    _ScheduleCell(
+                      alignCenter: true,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                      child: _buildTimeCell(
+                        cinemaEntry.value[day] ?? const <CinemaShowtime>[],
+                        timeStyle,
+                        emptyStyle,
+                        chipColor,
+                      ),
+                    ),
+                ],
               ),
           ],
         ),
-        for (final cinemaEntry in cinemaShowtimes.entries)
-          TableRow(
-            children: [
-              _ScheduleCell(
-                child: Text(
-                  _formatCinemaName(cinemaEntry.key),
-                  style: cinemaStyle,
-                ),
-              ),
-              for (final day in dayLabels)
-                _ScheduleCell(
-                  alignCenter: true,
-                  child: _buildTimeCell(
-                    cinemaEntry.value[day] ?? const <CinemaShowtime>[],
-                    timeStyle,
-                    emptyStyle,
-                  ),
-                ),
-            ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final table = buildTable();
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: table,
           ),
-      ],
+        );
+      },
     );
   }
 
@@ -346,6 +430,7 @@ class _ShowtimeScheduleTable extends StatelessWidget {
     List<CinemaShowtime> showtimes,
     TextStyle timeStyle,
     TextStyle emptyStyle,
+    Color chipColor,
   ) {
     final values = showtimes
         .map(_formatShowtime)
@@ -356,10 +441,23 @@ class _ShowtimeScheduleTable extends StatelessWidget {
       return Text('—', style: emptyStyle, textAlign: TextAlign.center);
     }
 
-    return Text(
-      values.join('\n'),
-      style: timeStyle,
-      textAlign: TextAlign.center,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: [
+        for (final value in values)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: chipColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(value, style: timeStyle, textAlign: TextAlign.center),
+            ),
+          ),
+      ],
     );
   }
 
@@ -386,16 +484,21 @@ class _ShowtimeScheduleTable extends StatelessWidget {
 }
 
 class _ScheduleCell extends StatelessWidget {
-  const _ScheduleCell({required this.child, this.alignCenter = false});
+  const _ScheduleCell({
+    required this.child,
+    this.alignCenter = false,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  });
 
   final Widget child;
   final bool alignCenter;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     final alignment = alignCenter ? Alignment.center : Alignment.centerLeft;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      padding: padding,
       child: Align(
         alignment: alignment,
         child: child,
