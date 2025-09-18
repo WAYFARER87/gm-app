@@ -116,26 +116,20 @@ void main() {
     expect(page.pages, 2);
   });
 
-  test('fetchNews sends feed id when provided', () async {
-    String? passedCategoryId;
+  test('fetchFeeds maps feed id variations to category id', () async {
     service.dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          passedCategoryId = options.queryParameters['feed_id']?.toString();
           handler.resolve(
             Response(
               requestOptions: options,
               data: {
                 'data': {
-                  'items': [
-                    {'id': 1, 'title': 'Only'},
+                  'feeds': [
+                    {'feed_id': 10, 'name': 'First'},
+                    {'feedId': 'alpha', 'name': 'Second'},
+                    {'feed-id': 'beta', 'name': 'Third'},
                   ],
-                  'pagination': {
-                    'current_page': 1,
-                    'per_page': 10,
-                    'total': 1,
-                    'last_page': 1,
-                  },
                 },
               },
             ),
@@ -144,7 +138,62 @@ void main() {
       ),
     );
 
-    await service.fetchNews(categoryId: 'cat123');
-    expect(passedCategoryId, 'cat123');
+    final feeds = await service.fetchFeeds();
+    expect(feeds.map((c) => c.id).toList(), ['10', 'alpha', 'beta']);
+  });
+
+  test('fetchNews sends feed id when provided', () async {
+    String? passedCategoryId;
+    service.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path.endsWith('news/feeds')) {
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                data: {
+                  'data': [
+                    {'feed_id': 777, 'name': 'Category'},
+                  ],
+                },
+              ),
+            );
+            return;
+          }
+
+          if (options.path.endsWith('news')) {
+            passedCategoryId = options.queryParameters['feed_id']?.toString();
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                data: {
+                  'data': {
+                    'items': [
+                      {'id': 1, 'title': 'Only'},
+                    ],
+                    'pagination': {
+                      'current_page': 1,
+                      'per_page': 10,
+                      'total': 1,
+                      'last_page': 1,
+                    },
+                  },
+                },
+              ),
+            );
+            return;
+          }
+
+          handler.next(options);
+        },
+      ),
+    );
+
+    final categories = await service.fetchFeeds();
+    expect(categories, hasLength(1));
+    expect(categories.first.id, '777');
+
+    await service.fetchNews(categoryId: categories.first.id);
+    expect(passedCategoryId, '777');
   });
 }
