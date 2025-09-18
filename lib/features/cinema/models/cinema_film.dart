@@ -68,14 +68,30 @@ class CinemaFilm {
   }
 
   static String? _resolveCountry(dynamic filmdata, dynamic kpData) {
-    final countryFromFilmdata =
-        filmdata is Map ? _parseCountries(filmdata['country'] ?? filmdata['countries']) : null;
-    if (countryFromFilmdata != null) {
-      return countryFromFilmdata;
+    if (filmdata is Map) {
+      final directCountry =
+          _parseCountries(filmdata['country'] ?? filmdata['countries']);
+      if (directCountry != null) {
+        return directCountry;
+      }
+
+      final nestedKpData = filmdata['kp_data'] ?? filmdata['kpData'];
+      if (nestedKpData != null) {
+        final nestedCountry = _parseCountries(
+          nestedKpData is Map
+              ? nestedKpData['countries'] ?? nestedKpData['country'] ?? nestedKpData
+              : nestedKpData,
+        );
+        if (nestedCountry != null) {
+          return nestedCountry;
+        }
+      }
     }
 
-    if (kpData is Map) {
-      final countryFromKp = _parseCountries(kpData['countries']);
+    if (kpData != null) {
+      final countryFromKp = kpData is Map
+          ? _parseCountries(kpData['countries'] ?? kpData['country'] ?? kpData)
+          : _parseCountries(kpData);
       if (countryFromKp != null) {
         return countryFromKp;
       }
