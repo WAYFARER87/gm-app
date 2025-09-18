@@ -129,9 +129,7 @@ class EventItem {
               '')
           .toString(),
       url: (json['url'] ?? json['link'] ?? json['website'] ?? '').toString(),
-      price:
-          (json['price'] ?? json['cost'] ?? json['fee'] ?? json['ticket_price'] ?? '')
-              .toString(),
+      price: _extractTicketInfo(json),
       organizer:
           (json['organizer'] ?? json['author'] ?? json['owner'] ?? '').toString(),
       phone: (json['phone'] ?? json['contact_phone'] ?? '').toString(),
@@ -196,5 +194,94 @@ class EventItem {
       }
     }
     return null;
+  }
+
+  static String _extractTicketInfo(Map<String, dynamic> json) {
+    final candidates = [
+      json['price'],
+      json['cost'],
+      json['fee'],
+      json['ticket_price'],
+      json['tickets'],
+    ];
+
+    for (final candidate in candidates) {
+      final parsed = _stringifyTicketValue(candidate).trim();
+      if (parsed.isNotEmpty) {
+        return parsed;
+      }
+    }
+    return '';
+  }
+
+  static String _stringifyTicketValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value.trim();
+    if (value is num) return value.toString();
+    if (value is bool) return value ? 'true' : 'false';
+    if (value is Iterable) {
+      final items = value
+          .map(_stringifyTicketValue)
+          .where((element) => element.trim().isNotEmpty)
+          .toList();
+      if (items.isEmpty) return '';
+      return items.join('\n');
+    }
+    if (value is Map) {
+      final textKeys = ['text', 'description', 'info', 'details', 'summary'];
+      String text = '';
+      for (final key in textKeys) {
+        text = _stringifyTicketValue(value[key]);
+        if (text.isNotEmpty) break;
+      }
+
+      final name = _stringifyTicketValue(
+        value['name'] ??
+            value['title'] ??
+            value['label'] ??
+            value['type'] ??
+            value['category'],
+      );
+      final price = _stringifyTicketValue(
+        value['price'] ??
+            value['cost'] ??
+            value['fee'] ??
+            value['value'] ??
+            value['amount'],
+      );
+      final url = _stringifyTicketValue(
+        value['url'] ?? value['link'] ?? value['href'],
+      );
+
+      final parts = <String>[];
+      if (text.isNotEmpty) {
+        parts.add(text);
+      } else {
+        final namePriceParts = <String>[];
+        if (name.isNotEmpty) namePriceParts.add(name);
+        if (price.isNotEmpty) namePriceParts.add(price);
+        if (namePriceParts.isNotEmpty) {
+          parts.add(namePriceParts.join(' — '));
+        }
+      }
+
+      if (url.isNotEmpty) {
+        parts.add(url);
+      }
+
+      if (parts.isEmpty) {
+        final fallback = value.values
+            .map(_stringifyTicketValue)
+            .where((element) => element.trim().isNotEmpty)
+            .toList();
+        if (fallback.isNotEmpty) {
+          parts.addAll(fallback);
+        }
+      }
+
+      return parts.join('\n').trim();
+    }
+
+    return value.toString().trim();
   }
 }
