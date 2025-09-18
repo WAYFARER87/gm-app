@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/cinema_film.dart';
+import '../models/cinema_showtime.dart';
 
 class CinemaFilmCard extends StatelessWidget {
   const CinemaFilmCard({super.key, required this.film});
@@ -74,7 +76,7 @@ class CinemaFilmCard extends StatelessWidget {
     final posterHeight = posterWidth / posterAspectRatio;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -96,6 +98,10 @@ class CinemaFilmCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ...infoChildren,
+                if (film.showtimes.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _ShowtimesSection(showtimes: film.showtimes),
+                ],
               ],
             ),
           ),
@@ -117,6 +123,176 @@ class CinemaFilmCard extends StatelessWidget {
     return trimmed;
   }
 
+}
+
+class _ShowtimesSection extends StatelessWidget {
+  const _ShowtimesSection({required this.showtimes});
+
+  final List<CinemaShowtime> showtimes;
+
+  @override
+  Widget build(BuildContext context) {
+    if (showtimes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final groups = <String, List<CinemaShowtime>>{};
+
+    for (final showtime in showtimes) {
+      final normalizedDate = showtime.when.trim().isEmpty
+          ? 'Дата не указана'
+          : showtime.when.trim();
+      groups.putIfAbsent(normalizedDate, () => <CinemaShowtime>[]).add(showtime);
+    }
+
+    final sectionTitleStyle =
+        (theme.textTheme.titleMedium ?? const TextStyle(fontSize: 16)).copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+
+    final groupEntries = groups.entries.toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Расписание', style: sectionTitleStyle),
+        const SizedBox(height: 12),
+        ...List.generate(groupEntries.length, (index) {
+          final entry = groupEntries[index];
+          return Padding(
+            padding: EdgeInsets.only(bottom: index == groupEntries.length - 1 ? 0 : 12),
+            child: _ShowtimeGroupCard(
+              date: entry.key,
+              showtimes: entry.value,
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _ShowtimeGroupCard extends StatelessWidget {
+  const _ShowtimeGroupCard({required this.date, required this.showtimes});
+
+  final String date;
+  final List<CinemaShowtime> showtimes;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final dateStyle =
+        (theme.textTheme.titleSmall ?? const TextStyle(fontSize: 14)).copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+    final dividerColor = colorScheme.outline.withOpacity(0.12);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceVariant.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(date, style: dateStyle),
+          const SizedBox(height: 10),
+          Divider(height: 1, thickness: 1, color: dividerColor),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final showtime in showtimes)
+                _ShowtimeChip(showtime: showtime),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShowtimeChip extends StatelessWidget {
+  const _ShowtimeChip({required this.showtime});
+
+  final CinemaShowtime showtime;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final borderRadius = BorderRadius.circular(999);
+    final textStyle =
+        (theme.textTheme.bodyMedium ?? const TextStyle(fontSize: 14)).copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.primary,
+    );
+
+    final timeText = showtime.time.trim().isEmpty ? '—' : showtime.time.trim();
+
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withOpacity(0.08),
+        borderRadius: borderRadius,
+        border: Border.all(color: colorScheme.primary.withOpacity(0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(timeText, style: textStyle),
+          if (showtime.hasBuyUrl) ...[
+            const SizedBox(width: 6),
+            Icon(
+              Icons.shopping_bag_outlined,
+              size: 16,
+              color: colorScheme.primary,
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (!showtime.hasBuyUrl) {
+      return pill;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: borderRadius,
+        onTap: () => _openBuyUrl(context),
+        child: pill,
+      ),
+    );
+  }
+
+  Future<void> _openBuyUrl(BuildContext context) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final uri = Uri.tryParse(showtime.buyUrl.trim());
+    if (uri == null) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть ссылку')),
+      );
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть ссылку')),
+      );
+    }
+  }
 }
 
 class _Poster extends StatelessWidget {
