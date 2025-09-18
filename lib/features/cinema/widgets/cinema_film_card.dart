@@ -1,11 +1,8 @@
-import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/html_utils.dart';
 import '../models/cinema_film.dart';
-import '../models/cinema_showtime.dart';
 
 class CinemaFilmCard extends StatelessWidget {
   const CinemaFilmCard({super.key, required this.film});
@@ -18,10 +15,45 @@ class CinemaFilmCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final infoChips = _buildInfoChips(colorScheme, textTheme);
-    final groups = _groupShowtimes(film.showtimes);
-    final showtimesByCinema = _groupShowtimesByCinema(film.showtimes);
-    final description = film.description?.trim();
+    final titleStyle = (textTheme.titleMedium ?? const TextStyle()).copyWith(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+      height: 1.2,
+    );
+    final baseInfoStyle =
+        (textTheme.bodyMedium ?? const TextStyle(fontSize: 14)).copyWith(
+      fontSize: 14,
+      color: colorScheme.onSurface.withOpacity(0.75),
+      height: 1.4,
+    );
+    final labelStyle = baseInfoStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+
+    Widget buildInfoLine(String label, String value) {
+      return Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: '$label: ', style: labelStyle),
+            TextSpan(text: value, style: baseInfoStyle),
+          ],
+        ),
+        softWrap: true,
+      );
+    }
+
+    String normalizeValue(String? value, String placeholder) {
+      final trimmed = value?.trim() ?? '';
+      return trimmed.isNotEmpty ? trimmed : placeholder;
+    }
+
+    final yearText = normalizeValue(film.year, 'Не указан');
+    final countryText = normalizeValue(film.country, 'Не указана');
+    final genreText = normalizeValue(film.genre, 'Не указан');
+    final durationValue = _durationText(film.duration);
+    final durationText = normalizeValue(durationValue, 'Не указана');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -39,6 +71,22 @@ class CinemaFilmCard extends StatelessWidget {
             24,
           );
 
+          final infoItems = <MapEntry<String, String>>[
+            MapEntry('Год', yearText),
+            MapEntry('Страна', countryText),
+            MapEntry('Жанр', genreText),
+            MapEntry('Длительность', durationText),
+          ];
+
+          final infoChildren = <Widget>[];
+          for (var i = 0; i < infoItems.length; i++) {
+            final item = infoItems[i];
+            infoChildren.add(buildInfoLine(item.key, item.value));
+            if (i < infoItems.length - 1) {
+              infoChildren.add(const SizedBox(height: 8));
+            }
+          }
+
           final details = Padding(
             padding: contentPadding,
             child: Column(
@@ -48,53 +96,10 @@ class CinemaFilmCard extends StatelessWidget {
                   film.name.isNotEmpty ? film.name : 'Без названия',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: (textTheme.headlineSmall ?? const TextStyle()).copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                if (infoChips.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: infoChips,
-                  ),
-                ],
-                if (description != null && description.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    htmlToPlainText(description),
-                    style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-                      color: colorScheme.onSurface.withOpacity(0.8),
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Text(
-                  'Сеансы',
-                  style: (textTheme.titleMedium ?? textTheme.titleSmall ??
-                          const TextStyle())
-                      .copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
+                  style: titleStyle,
                 ),
                 const SizedBox(height: 12),
-                if (groups.isNotEmpty && showtimesByCinema.isNotEmpty)
-                  _ShowtimeScheduleTable(
-                    dayLabels: groups.keys.toList(),
-                    cinemaShowtimes: showtimesByCinema,
-                  )
-                else
-                  Text(
-                    'Нет ближайших сеансов',
-                    style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-                      color: colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
+                ...infoChildren,
               ],
             ),
           );
@@ -126,78 +131,6 @@ class CinemaFilmCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildInfoChips(ColorScheme colorScheme, TextTheme textTheme) {
-    final chips = <Widget>[];
-
-    if (film.genre.isNotEmpty) {
-      chips.add(_InfoChip(
-        icon: Icons.local_movies_outlined,
-        label: film.genre,
-        colorScheme: colorScheme,
-        textTheme: textTheme,
-      ));
-    }
-
-    final durationText = _durationText(film.duration);
-    if (durationText != null) {
-      chips.add(_InfoChip(
-        icon: Icons.schedule_outlined,
-        label: durationText,
-        colorScheme: colorScheme,
-        textTheme: textTheme,
-      ));
-    }
-
-    final ratingText = _ratingText(film.rating, film.ratingVotes);
-    if (ratingText != null) {
-      chips.add(_InfoChip(
-        icon: Icons.star_rate_rounded,
-        label: ratingText,
-        colorScheme: colorScheme,
-        textTheme: textTheme,
-      ));
-    }
-
-    if (film.year != null && film.year!.isNotEmpty) {
-      chips.add(_InfoChip(
-        icon: Icons.event,
-        label: 'Год: ${film.year}',
-        colorScheme: colorScheme,
-        textTheme: textTheme,
-      ));
-    }
-
-    return chips;
-  }
-
-  LinkedHashMap<String, List<CinemaShowtime>> _groupShowtimes(
-    List<CinemaShowtime> showtimes,
-  ) {
-    final groups = LinkedHashMap<String, List<CinemaShowtime>>();
-    for (final showtime in showtimes) {
-      final key = showtime.when.isNotEmpty ? showtime.when : 'Расписание';
-      groups.putIfAbsent(key, () => []).add(showtime);
-    }
-    return groups;
-  }
-
-  LinkedHashMap<String, LinkedHashMap<String, List<CinemaShowtime>>>
-      _groupShowtimesByCinema(
-    List<CinemaShowtime> showtimes,
-  ) {
-    final groups =
-        LinkedHashMap<String, LinkedHashMap<String, List<CinemaShowtime>>>();
-    for (final showtime in showtimes) {
-      final cinemaGroup = groups.putIfAbsent(
-        showtime.cinemaId,
-        () => LinkedHashMap<String, List<CinemaShowtime>>(),
-      );
-      final key = showtime.when.isNotEmpty ? showtime.when : 'Расписание';
-      cinemaGroup.putIfAbsent(key, () => <CinemaShowtime>[]).add(showtime);
-    }
-    return groups;
-  }
-
   String? _durationText(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
@@ -206,15 +139,6 @@ class CinemaFilmCard extends StatelessWidget {
       return '$parsed мин';
     }
     return trimmed;
-  }
-
-  String? _ratingText(String rating, int? votes) {
-    final value = rating.trim();
-    if (value.isEmpty || value == '0') return null;
-    if (votes != null && votes > 0) {
-      return '$value ★ (${votes.toString()} голосов)';
-    }
-    return '$value ★';
   }
 
 }
@@ -260,248 +184,3 @@ class _Poster extends StatelessWidget {
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    required this.colorScheme,
-    required this.textTheme,
-  });
-
-  final IconData icon;
-  final String label;
-  final ColorScheme colorScheme;
-  final TextTheme textTheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShowtimeScheduleTable extends StatelessWidget {
-  const _ShowtimeScheduleTable({
-    required this.dayLabels,
-    required this.cinemaShowtimes,
-  });
-
-  final List<String> dayLabels;
-  final LinkedHashMap<String, LinkedHashMap<String, List<CinemaShowtime>>>
-      cinemaShowtimes;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    final headerStyle = (textTheme.bodySmall ?? const TextStyle()).copyWith(
-      fontWeight: FontWeight.w600,
-      color: colorScheme.onSurface.withOpacity(0.7),
-      letterSpacing: 0.2,
-    );
-    final cinemaStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-      fontWeight: FontWeight.w600,
-      color: colorScheme.onSurface,
-    );
-    final timeStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-      fontWeight: FontWeight.w600,
-      color: colorScheme.onSurface,
-    );
-    final emptyStyle = timeStyle.copyWith(
-      fontWeight: FontWeight.w400,
-      color: colorScheme.onSurface.withOpacity(0.4),
-    );
-    final borderColor = colorScheme.outline.withOpacity(0.16);
-    final headerColor = colorScheme.surfaceVariant.withOpacity(0.6);
-    final chipColor = colorScheme.primary.withOpacity(0.08);
-
-    Widget buildTable() {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Table(
-          columnWidths: {
-            0: const IntrinsicColumnWidth(),
-            for (var i = 1; i <= dayLabels.length; i++) i: const FlexColumnWidth(),
-          },
-          border: TableBorder(
-            horizontalInside: BorderSide(color: borderColor, width: 1),
-            verticalInside: BorderSide(color: borderColor, width: 1),
-            top: BorderSide(color: borderColor, width: 1),
-            bottom: BorderSide(color: borderColor, width: 1),
-            left: BorderSide(color: borderColor, width: 1),
-            right: BorderSide(color: borderColor, width: 1),
-          ),
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          children: [
-            TableRow(
-              decoration: BoxDecoration(color: headerColor),
-              children: [
-                _ScheduleCell(
-                  child: Text('Кинотеатр', style: headerStyle),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                ),
-                for (final day in dayLabels)
-                  _ScheduleCell(
-                    alignCenter: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    child: Text(
-                      _formatDayLabel(day),
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-              ],
-            ),
-            for (final cinemaEntry in cinemaShowtimes.entries)
-              TableRow(
-                children: [
-                  _ScheduleCell(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-                    child: Text(
-                      _formatCinemaName(cinemaEntry.key),
-                      style: cinemaStyle,
-                    ),
-                  ),
-                  for (final day in dayLabels)
-                    _ScheduleCell(
-                      alignCenter: true,
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-                      child: _buildTimeCell(
-                        cinemaEntry.value[day] ?? const <CinemaShowtime>[],
-                        timeStyle,
-                        emptyStyle,
-                        chipColor,
-                      ),
-                    ),
-                ],
-              ),
-          ],
-        ),
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final table = buildTable();
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: table,
-          ),
-        );
-      },
-    );
-  }
-
-  static String _formatDayLabel(String raw) {
-    final plain = htmlToPlainText(raw).trim();
-    return plain.isNotEmpty ? plain : raw;
-  }
-
-  static String _formatCinemaName(String raw) {
-    final plain = htmlToPlainText(raw).replaceAll('\n', ' ').trim();
-    return plain.isNotEmpty ? plain : 'Кинотеатр';
-  }
-
-  static Widget _buildTimeCell(
-    List<CinemaShowtime> showtimes,
-    TextStyle timeStyle,
-    TextStyle emptyStyle,
-    Color chipColor,
-  ) {
-    final values = showtimes
-        .map(_formatShowtime)
-        .where((value) => value.isNotEmpty)
-        .toList();
-
-    if (values.isEmpty) {
-      return Text('—', style: emptyStyle, textAlign: TextAlign.center);
-    }
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: [
-        for (final value in values)
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: chipColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Text(value, style: timeStyle, textAlign: TextAlign.center),
-            ),
-          ),
-      ],
-    );
-  }
-
-  static String _formatShowtime(CinemaShowtime showtime) {
-    final parts = <String>[];
-
-    final time = showtime.time.trim();
-    if (time.isNotEmpty) {
-      parts.add(time);
-    }
-
-    final room = showtime.room.trim();
-    if (room.isNotEmpty) {
-      parts.add(room);
-    }
-
-    final format = showtime.format.trim();
-    if (format.isNotEmpty) {
-      parts.add(format);
-    }
-
-    return parts.join(' • ');
-  }
-}
-
-class _ScheduleCell extends StatelessWidget {
-  const _ScheduleCell({
-    required this.child,
-    this.alignCenter = false,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-  });
-
-  final Widget child;
-  final bool alignCenter;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final alignment = alignCenter ? Alignment.center : Alignment.centerLeft;
-    return Padding(
-      padding: padding,
-      child: Align(
-        alignment: alignment,
-        child: child,
-      ),
-    );
-  }
-}

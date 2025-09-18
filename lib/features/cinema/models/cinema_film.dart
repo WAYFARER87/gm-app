@@ -13,6 +13,7 @@ class CinemaFilm {
     this.time,
     this.description,
     this.year,
+    this.country,
     this.poster,
     this.ratingVotes,
     this.replyCount,
@@ -30,6 +31,7 @@ class CinemaFilm {
   final String? time;
   final String? description;
   final String? year;
+  final String? country;
   final String? poster;
   final int? ratingVotes;
   final int? replyCount;
@@ -55,6 +57,9 @@ class CinemaFilm {
       replyCount: _parseInt(json['replys']),
       description: filmdata is Map ? _nullableString(filmdata['description']) : null,
       year: filmdata is Map ? _nullableString(filmdata['year']) : null,
+      country: filmdata is Map
+          ? _nullableString(filmdata['country'] ?? filmdata['countries'])
+          : null,
       poster: filmdata is Map ? _nullableString(filmdata['poster']) : null,
       showtimes: _parseShowtimes(json['showtimes']),
     );
