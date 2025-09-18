@@ -13,6 +13,7 @@ class EventItem {
   final DateTime? endDate;
   final String venueName;
   final String venueAddress;
+  final String categoryName;
 
   EventItem({
     required this.id,
@@ -29,6 +30,7 @@ class EventItem {
     this.endDate,
     required this.venueName,
     required this.venueAddress,
+    required this.categoryName,
   });
 
   factory EventItem.fromJson(Map<String, dynamic> json) {
@@ -137,6 +139,7 @@ class EventItem {
       endDate: end,
       venueName: venueName,
       venueAddress: venueAddress,
+      categoryName: _extractCategoryName(json),
     );
   }
 
@@ -283,5 +286,65 @@ class EventItem {
     }
 
     return value.toString().trim();
+  }
+
+  static String _extractCategoryName(Map<String, dynamic> json) {
+    String parseCategory(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value.trim();
+      if (value is num || value is bool) {
+        return value.toString();
+      }
+      if (value is Iterable) {
+        for (final element in value) {
+          final parsed = parseCategory(element);
+          if (parsed.isNotEmpty) {
+            return parsed;
+          }
+        }
+        return '';
+      }
+      if (value is Map) {
+        for (final key in const ['name', 'title', 'label', 'value', 'text']) {
+          final parsed = parseCategory(value[key]);
+          if (parsed.isNotEmpty) {
+            return parsed;
+          }
+        }
+        for (final entry in value.values) {
+          final parsed = parseCategory(entry);
+          if (parsed.isNotEmpty) {
+            return parsed;
+          }
+        }
+        return '';
+      }
+      return value.toString().trim();
+    }
+
+    final candidates = [
+      json['category'],
+      json['category_name'],
+      json['category_title'],
+      json['categoryName'],
+      json['categoryTitle'],
+      json['category_label'],
+      json['feed_name'],
+      json['feed_title'],
+      json['feedName'],
+      json['feedTitle'],
+      json['feed'],
+      json['section'],
+      json['type'],
+    ];
+
+    for (final candidate in candidates) {
+      final parsed = parseCategory(candidate);
+      if (parsed.isNotEmpty) {
+        return parsed;
+      }
+    }
+
+    return '';
   }
 }
