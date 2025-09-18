@@ -14,6 +14,7 @@ class EventDetailScreen extends StatelessWidget {
     final description = htmlToPlainText(
       item.description.isNotEmpty ? item.description : item.summary,
     );
+    final ticketInfo = _formatTicketInfo(item.price);
     final date = formatEventDateRange(
       item.startDate,
       item.endDate,
@@ -83,12 +84,12 @@ class EventDetailScreen extends StatelessWidget {
                       ].join(', '),
                     ),
                   ),
-                if (item.price.isNotEmpty)
+                if (ticketInfo.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: _InfoRow(
                       icon: Icons.sell,
-                      text: item.price,
+                      text: ticketInfo,
                     ),
                   ),
                 if (item.organizer.isNotEmpty)
@@ -137,6 +138,35 @@ class EventDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatTicketInfo(String price) {
+    final trimmed = price.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+
+    if (!trimmed.contains('<')) {
+      return trimmed;
+    }
+
+    final normalized = trimmed
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</div>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n');
+
+    final segments = normalized
+        .split('\n')
+        .map((segment) => htmlToPlainText(segment).trim())
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+
+    if (segments.isEmpty) {
+      return htmlToPlainText(normalized).trim();
+    }
+
+    return segments.join('\n');
   }
 }
 
