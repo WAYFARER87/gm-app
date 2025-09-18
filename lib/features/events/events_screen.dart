@@ -5,14 +5,21 @@ import 'events_list.dart';
 import 'models/event_category.dart';
 
 class EventsScreen extends StatefulWidget {
-  const EventsScreen({super.key});
+  const EventsScreen({
+    super.key,
+    this.apiService,
+    this.storageKeyPrefix = 'events',
+  });
+
+  final EventsApiService? apiService;
+  final String storageKeyPrefix;
 
   @override
   State<EventsScreen> createState() => _EventsScreenState();
 }
 
 class _EventsScreenState extends State<EventsScreen> {
-  final _api = EventsApiService();
+  late EventsApiService _api;
   List<EventCategory> _categories = [];
   bool _isLoading = true;
   String? _error;
@@ -22,7 +29,17 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   void initState() {
     super.initState();
+    _api = widget.apiService ?? EventsApiService();
     _loadCategories();
+  }
+
+  @override
+  void didUpdateWidget(covariant EventsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.apiService != widget.apiService) {
+      _api = widget.apiService ?? EventsApiService();
+      _loadCategories();
+    }
   }
 
   void _handleTabChanged() {
@@ -89,6 +106,7 @@ class _EventsScreenState extends State<EventsScreen> {
     final categoryNames = {
       for (final cat in _categories) cat.id: cat.name,
     };
+    final prefix = widget.storageKeyPrefix;
 
     return DefaultTabController(
       length: _categories.length + 1,
@@ -125,14 +143,16 @@ class _EventsScreenState extends State<EventsScreen> {
             child: TabBarView(
               children: [
                 EventsList(
-                  key: const PageStorageKey('events-all'),
+                  key: PageStorageKey('$prefix-all'),
                   categoryNames: categoryNames,
+                  apiService: _api,
                 ),
                 for (final cat in _categories)
                   EventsList(
-                    key: PageStorageKey('events-${cat.id}'),
+                    key: PageStorageKey('$prefix-${cat.id}'),
                     categoryId: cat.id,
                     categoryNames: categoryNames,
+                    apiService: _api,
                   ),
               ],
             ),
