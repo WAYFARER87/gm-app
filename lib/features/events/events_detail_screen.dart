@@ -116,6 +116,12 @@ class EventDetailScreen extends StatelessWidget {
     final categoryText =
         item.categoryName.trim().isNotEmpty ? item.categoryName.trim() : 'Не указана';
     final dateSummary = dateText.isNotEmpty ? dateText : 'Не указана';
+    final placeParts = [
+      if (item.venueName.isNotEmpty) item.venueName,
+      if (item.venueAddress.isNotEmpty) item.venueAddress,
+    ];
+    final placeSummary =
+        placeParts.isNotEmpty ? placeParts.join(', ') : 'Не указано';
 
     return Scaffold(
       appBar: AppBar(
@@ -155,6 +161,8 @@ class EventDetailScreen extends StatelessWidget {
                         style: titleStyle,
                       ),
                       const SizedBox(height: 12),
+                      buildSummaryLine('Место', placeSummary),
+                      const SizedBox(height: 8),
                       buildSummaryLine('Категория', categoryText),
                       const SizedBox(height: 8),
                       buildSummaryLine('Дата', dateSummary),
@@ -172,77 +180,17 @@ class EventDetailScreen extends StatelessWidget {
           const Divider(height: 32, indent: 16, endIndent: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (dateText.isNotEmpty)
-                  _InfoRow(
-                    icon: Icons.schedule,
-                    text: dateText,
-                  ),
-                if (item.venueName.isNotEmpty || item.venueAddress.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _InfoRow(
-                      icon: Icons.place,
-                      text: [
-                        if (item.venueName.isNotEmpty) item.venueName,
-                        if (item.venueAddress.isNotEmpty) item.venueAddress,
-                      ].join(', '),
-                    ),
-                  ),
-                if (ticketInfo.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _InfoRow(
-                      icon: Icons.sell,
-                      text: ticketInfo,
-                    ),
-                  ),
-                if (item.organizer.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _InfoRow(
-                      icon: Icons.business_center,
-                      text: item.organizer,
-                    ),
-                  ),
-                if (item.phone.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _InfoRow(
-                      icon: Icons.phone,
-                      text: item.phone,
-                    ),
-                  ),
-                if (item.url.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _InfoRow(
-                      icon: Icons.link,
-                      text: item.url,
-                    ),
-                  ),
-                if (parsedDescription.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: Text(
-                      parsedDescription,
-                      key: const Key('event-description'),
-                      softWrap: true,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.4,
-                      ),
+            child: parsedDescription.isNotEmpty
+                ? Text(
+                    parsedDescription,
+                    key: const Key('event-description'),
+                    softWrap: true,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.4,
                     ),
                   )
-                else
-                  const Padding(
-                    padding: EdgeInsets.only(top: 20),
-                    child: Text('Описание недоступно'),
-                  ),
-              ],
-            ),
+                : const Text('Описание недоступно'),
           ),
         ],
       ),
@@ -289,34 +237,6 @@ class EventDetailScreen extends StatelessWidget {
     return segments.join('\n');
   }
 }
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _EventPosterFullScreen extends StatelessWidget {
   const _EventPosterFullScreen({
     required this.imageUrl,
