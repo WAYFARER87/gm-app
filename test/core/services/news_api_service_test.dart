@@ -142,7 +142,7 @@ void main() {
     expect(feeds.map((c) => c.id).toList(), ['10', 'alpha', 'beta']);
   });
 
-  test('fetchNews sends feed id when provided', () async {
+  test('fetchNews sends category id when provided', () async {
     String? passedCategoryId;
     service.dio.interceptors.add(
       InterceptorsWrapper(
@@ -162,7 +162,8 @@ void main() {
           }
 
           if (options.path.endsWith('news')) {
-            passedCategoryId = options.queryParameters['feed_id']?.toString();
+            passedCategoryId =
+                options.queryParameters['category_id']?.toString();
             handler.resolve(
               Response(
                 requestOptions: options,
