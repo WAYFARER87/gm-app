@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -30,8 +31,9 @@ class CinemaFilmCard extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 640;
+          final horizontalSpacing = isCompact ? 16.0 : 24.0;
           final contentPadding = EdgeInsets.fromLTRB(
-            isCompact ? 16 : 24,
+            0,
             isCompact ? 20 : 24,
             isCompact ? 16 : 24,
             24,
@@ -87,20 +89,25 @@ class CinemaFilmCard extends StatelessWidget {
             ),
           );
 
-          if (isCompact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Poster(imageUrl: film.imageUrl, isCompact: true),
-                details,
-              ],
-            );
-          }
+          final basePosterWidth =
+              isCompact ? 120.0 : _Poster.defaultWidth;
+          final maxPosterWidth = constraints.maxWidth - horizontalSpacing;
+          final posterWidth =
+              (maxPosterWidth.isFinite && maxPosterWidth > 0)
+                  ? math.min(
+                      basePosterWidth,
+                      maxPosterWidth * (isCompact ? 0.45 : 0.35),
+                    )
+                  : basePosterWidth;
 
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Poster(imageUrl: film.imageUrl, isCompact: false),
+              _Poster(
+                imageUrl: film.imageUrl,
+                width: posterWidth,
+              ),
+              SizedBox(width: horizontalSpacing),
               Expanded(child: details),
             ],
           );
@@ -203,11 +210,11 @@ class CinemaFilmCard extends StatelessWidget {
 }
 
 class _Poster extends StatelessWidget {
-  const _Poster({required this.imageUrl, required this.isCompact});
+  const _Poster({required this.imageUrl, required this.width});
 
-  static const double _posterWidth = 136.0;
+  static const double defaultWidth = 136.0;
   final String imageUrl;
-  final bool isCompact;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -225,33 +232,15 @@ class _Poster extends StatelessWidget {
             errorBuilder: (_, __, ___) => placeholder(),
           );
 
-    final borderRadius = isCompact
-        ? const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          )
-        : const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            bottomLeft: Radius.circular(20),
-          );
-
-    if (isCompact) {
-      return ClipRRect(
-        borderRadius: borderRadius,
-        child: SizedBox(
-          width: double.infinity,
-          child: AspectRatio(
-            aspectRatio: 3 / 4,
-            child: poster,
-          ),
-        ),
-      );
-    }
+    final posterWidth = width.isFinite && width > 0 ? width : defaultWidth;
 
     return ClipRRect(
-      borderRadius: borderRadius,
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        bottomLeft: Radius.circular(20),
+      ),
       child: SizedBox(
-        width: _posterWidth,
+        width: posterWidth,
         child: AspectRatio(
           aspectRatio: 3 / 4,
           child: poster,
