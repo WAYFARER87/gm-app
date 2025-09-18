@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../events/events_screen.dart';
 import '../news/news_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _primary = Color(0xFF182857);
   static const List<Widget> _pages = [
     NewsScreen(),
-    Center(child: Text('События')),
+    EventsScreen(),
     Center(child: Text('Афиша')),
   ];
 
