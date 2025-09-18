@@ -42,6 +42,8 @@ class CinemaFilm {
 
   factory CinemaFilm.fromJson(Map<String, dynamic> json) {
     final filmdata = json['filmdata'];
+    final kpData = json['kp_data'];
+    final resolvedCountry = _resolveCountry(filmdata, kpData);
 
     return CinemaFilm(
       filmId: _stringValue(json['film_id']),
@@ -57,12 +59,74 @@ class CinemaFilm {
       replyCount: _parseInt(json['replys']),
       description: filmdata is Map ? _nullableString(filmdata['description']) : null,
       year: filmdata is Map ? _nullableString(filmdata['year']) : null,
-      country: filmdata is Map
-          ? _nullableString(filmdata['country'] ?? filmdata['countries'])
-          : null,
+      country: resolvedCountry,
       poster: filmdata is Map ? _nullableString(filmdata['poster']) : null,
       showtimes: _parseShowtimes(json['showtimes']),
     );
+  }
+
+  static String? _resolveCountry(dynamic filmdata, dynamic kpData) {
+    final countryFromFilmdata =
+        filmdata is Map ? _parseCountries(filmdata['country'] ?? filmdata['countries']) : null;
+    if (countryFromFilmdata != null) {
+      return countryFromFilmdata;
+    }
+
+    if (kpData is Map) {
+      final countryFromKp = _parseCountries(kpData['countries']);
+      if (countryFromKp != null) {
+        return countryFromKp;
+      }
+    }
+
+    return null;
+  }
+
+  static String? _parseCountries(dynamic raw) {
+    if (raw == null) return null;
+
+    if (raw is String) {
+      final trimmed = raw.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    if (raw is num) {
+      final text = raw.toString().trim();
+      return text.isEmpty ? null : text;
+    }
+
+    if (raw is Iterable) {
+      final parts = <String>[];
+      for (final item in raw) {
+        final parsed = _parseCountries(item);
+        if (parsed != null && parsed.trim().isNotEmpty) {
+          parts.add(parsed.trim());
+        }
+      }
+      if (parts.isNotEmpty) {
+        return parts.join(', ');
+      }
+      return null;
+    }
+
+    if (raw is Map) {
+      for (final key in const ['name', 'title', 'country', 'value']) {
+        if (raw.containsKey(key)) {
+          final parsed = _parseCountries(raw[key]);
+          if (parsed != null) {
+            return parsed;
+          }
+        }
+      }
+      final nested = _parseCountries(raw.values);
+      if (nested != null) {
+        return nested;
+      }
+      return null;
+    }
+
+    final fallback = raw.toString().trim();
+    return fallback.isEmpty ? null : fallback;
   }
 
   static List<CinemaShowtime> _parseShowtimes(dynamic value) {
