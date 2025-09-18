@@ -101,9 +101,16 @@ class EventItem {
       feedId: json['feed_id']?.toString() ?? json['category_id']?.toString() ?? '',
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
       summary: (json['summary'] ??
+              json['content_preview'] ??
+              json['contentPreview'] ??
               json['intro'] ??
               json['preview'] ??
+              json['introtext'] ??
+              json['intro_text'] ??
               json['short_description'] ??
+              json['shortDescription'] ??
+              json['short_content'] ??
+              json['shortContent'] ??
               json['teaser'] ??
               '')
           .toString(),
