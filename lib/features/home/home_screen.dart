@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../afisha/afisha_screen.dart';
 import '../events/events_screen.dart';
 import '../news/news_screen.dart';
 
@@ -16,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const List<Widget> _pages = [
     NewsScreen(),
     EventsScreen(),
-    Center(child: Text('Афиша')),
+    AfishaScreen(),
   ];
 
   @override

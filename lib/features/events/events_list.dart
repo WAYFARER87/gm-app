@@ -11,17 +11,19 @@ class EventsList extends StatefulWidget {
     super.key,
     this.categoryId,
     this.categoryNames = const {},
+    this.apiService,
   });
 
   final String? categoryId;
   final Map<String, String> categoryNames;
+  final EventsApiService? apiService;
 
   @override
   State<EventsList> createState() => _EventsListState();
 }
 
 class _EventsListState extends State<EventsList> {
-  final _api = EventsApiService();
+  late EventsApiService _api;
   final _scrollController = ScrollController();
   final List<EventItem> _items = [];
   bool _isLoading = false;
@@ -32,6 +34,7 @@ class _EventsListState extends State<EventsList> {
   @override
   void initState() {
     super.initState();
+    _api = widget.apiService ?? EventsApiService();
     _loadMore();
     _scrollController.addListener(_onScroll);
   }
@@ -84,6 +87,11 @@ class _EventsListState extends State<EventsList> {
   @override
   void didUpdateWidget(covariant EventsList oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.apiService != widget.apiService) {
+      _api = widget.apiService ?? EventsApiService();
+      _refresh();
+      return;
+    }
     if (oldWidget.categoryId != widget.categoryId) {
       _refresh();
     }

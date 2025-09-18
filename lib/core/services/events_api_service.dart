@@ -8,11 +8,8 @@ import '../../features/events/models/event_item.dart';
 import '../../features/events/models/event_page.dart';
 
 class EventsApiService {
-  static final EventsApiService _instance = EventsApiService._internal();
-
-  factory EventsApiService() => _instance;
-
-  EventsApiService._internal() {
+  EventsApiService({String basePath = 'events'})
+      : _basePath = _sanitizeBasePath(basePath) {
     _dio = Dio(
       BaseOptions(
         baseUrl: 'https://gorodmore.ru/api/',
@@ -26,14 +23,26 @@ class EventsApiService {
     );
   }
 
-  late Dio _dio;
+  final String _basePath;
+  late final Dio _dio;
 
   @visibleForTesting
   Dio get dio => _dio;
 
+  String _buildPath([String? suffix]) {
+    if (suffix == null || suffix.isEmpty) {
+      return _basePath;
+    }
+    final normalizedSuffix = suffix.replaceAll(RegExp(r'^/+'), '');
+    if (normalizedSuffix.isEmpty) {
+      return _basePath;
+    }
+    return '$_basePath/$normalizedSuffix';
+  }
+
   /// Получить список лент событий (feeds)
   Future<List<EventCategory>> fetchFeeds() async {
-    final res = await _dio.get('events/feeds');
+    final res = await _dio.get(_buildPath('feeds'));
     final raw = res.data;
     final payload = _unwrapResponse(raw);
 
@@ -67,8 +76,7 @@ class EventsApiService {
     if (categoryId != null && categoryId.isNotEmpty) {
       params['category_id'] = categoryId;
     }
-
-    final res = await _dio.get('events', queryParameters: params);
+    final res = await _dio.get(_basePath, queryParameters: params);
     final raw = res.data;
     final payload = _unwrapResponse(raw);
 
@@ -136,6 +144,16 @@ class EventsApiService {
   String _resolveLang() {
     final code = ui.PlatformDispatcher.instance.locale.languageCode.toLowerCase();
     return code == 'ru' ? 'ru' : 'en';
+  }
+
+  static String _sanitizeBasePath(String basePath) {
+    final trimmed = basePath.trim();
+    if (trimmed.isEmpty) {
+      return 'events';
+    }
+    final withoutLeading = trimmed.replaceAll(RegExp(r'^/+'), '');
+    final withoutTrailing = withoutLeading.replaceAll(RegExp(r'/+$'), '');
+    return withoutTrailing.isEmpty ? 'events' : withoutTrailing;
   }
 
   dynamic _unwrapResponse(dynamic raw) {
