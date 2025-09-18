@@ -57,7 +57,7 @@ class _EventsListState extends State<EventsList> {
     try {
       final page = await _api.fetchEvents(
         page: _page,
-        feedId: widget.categoryId,
+        categoryId: widget.categoryId,
       );
       setState(() {
         _items.addAll(page.items);
