@@ -1,0 +1,11 @@
+.build/
+.dart_tool/
+.packages
+.idea/
+.vscode/
+linux/
+web/
+windows/
+macos/
+build/
+
