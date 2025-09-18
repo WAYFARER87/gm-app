@@ -11,10 +11,12 @@ class EventDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     final description = htmlToPlainText(
       item.description.isNotEmpty ? item.description : item.summary,
     );
     final ticketInfo = _formatTicketInfo(item.price);
+
     final date = formatEventDateRange(
       item.startDate,
       item.endDate,
@@ -116,18 +118,18 @@ class EventDetailScreen extends StatelessWidget {
                       text: item.url,
                     ),
                   ),
-                if (description.isNotEmpty)
+                if (parsedDescription.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 20),
                     child: Text(
-                      description,
+                      parsedDescription,
                       style: const TextStyle(
                         fontSize: 16,
                         height: 1.4,
                       ),
                     ),
                   ),
-                if (description.isEmpty)
+                if (parsedDescription.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 20),
                     child: Text('Описание недоступно'),

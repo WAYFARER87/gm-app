@@ -117,6 +117,7 @@ class EventItem {
       description: (json['description'] ??
               json['content'] ??
               json['body'] ??
+              json['content_full'] ??
               json['full_description'] ??
               '')
           .toString(),
