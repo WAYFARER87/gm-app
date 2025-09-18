@@ -16,6 +16,26 @@ void main() {
     expect(item.summary, 'Short preview text');
   });
 
+  test('EventItem.fromJson extracts category name with fallbacks', () {
+    final directCategory = EventItem.fromJson({
+      'id': 1,
+      'feed_id': '500',
+      'title': 'Direct Category Event',
+      'category': {'title': 'Музыка'},
+    });
+
+    expect(directCategory.categoryName, 'Музыка');
+
+    final fallbackCategory = EventItem.fromJson({
+      'id': 2,
+      'feed_id': '501',
+      'title': 'Fallback Category Event',
+      'category_title': 'Театр',
+    });
+
+    expect(fallbackCategory.categoryName, 'Театр');
+  });
+
   testWidgets('EventListItem displays parsed summary text', (tester) async {
     final item = EventItem.fromJson({
       'id': 7,
@@ -36,5 +56,31 @@ void main() {
     await tester.pump();
 
     expect(find.text('Preview body'), findsOneWidget);
+  });
+
+  testWidgets('EventListItem prefers item category over fallback', (tester) async {
+    final item = EventItem.fromJson({
+      'id': 11,
+      'feed_id': '300',
+      'title': 'Category Event',
+      'category': 'Музыка',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EventListItem(
+            item: item,
+            eventCategoryName: item.categoryName,
+            categoryName: 'Фолбэк',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.textContaining('Музыка'), findsOneWidget);
+    expect(find.textContaining('Фолбэк'), findsNothing);
   });
 }

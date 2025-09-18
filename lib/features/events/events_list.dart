@@ -161,6 +161,7 @@ class _EventsListState extends State<EventsList> {
           final item = _items[index];
           return EventListItem(
             item: item,
+            eventCategoryName: item.categoryName,
             categoryName: widget.categoryNames[item.feedId],
             onTap: () {
               Navigator.of(context).push(
@@ -182,11 +183,13 @@ class EventListItem extends StatelessWidget {
     required this.item,
     this.onTap,
     this.categoryName,
+    this.eventCategoryName,
   });
 
   final EventItem item;
   final VoidCallback? onTap;
   final String? categoryName;
+  final String? eventCategoryName;
 
   @override
   Widget build(BuildContext context) {
@@ -219,9 +222,15 @@ class EventListItem extends StatelessWidget {
     ];
     final placeText =
         placeParts.isNotEmpty ? placeParts.join(', ') : 'Не указано';
-    final categoryText = (categoryName ?? '').trim().isNotEmpty
-        ? categoryName!.trim()
-        : 'Не указана';
+    final categoryCandidates = <String>[
+      if ((eventCategoryName ?? '').trim().isNotEmpty)
+        (eventCategoryName ?? '').trim(),
+      if (item.categoryName.trim().isNotEmpty) item.categoryName.trim(),
+      if ((categoryName ?? '').trim().isNotEmpty)
+        (categoryName ?? '').trim(),
+    ];
+    final categoryText =
+        categoryCandidates.isNotEmpty ? categoryCandidates.first : 'Не указана';
     final dateText = date.isNotEmpty ? date : 'Не указана';
 
     Widget buildPoster() {
