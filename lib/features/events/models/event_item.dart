@@ -399,21 +399,20 @@ class EventItem {
   }
 
   static String _extractTicketInfo(Map<String, dynamic> json) {
-    final candidates = [
-      json['price'],
-      json['cost'],
-      json['fee'],
-      json['ticket_price'],
-      json['tickets'],
-    ];
+    final tickets = json['tickets'];
+    final parsed = _stringifyTicketValue(tickets).trim();
 
-    for (final candidate in candidates) {
-      final parsed = _stringifyTicketValue(candidate).trim();
-      if (parsed.isNotEmpty) {
-        return parsed;
-      }
+    if (parsed.isEmpty) {
+      return '';
     }
-    return '';
+
+    final lowerParsed = parsed.toLowerCase();
+
+    if (parsed == '[]' || parsed == '{}' || lowerParsed == 'null') {
+      return '';
+    }
+
+    return parsed;
   }
 
   static String _stringifyTicketValue(dynamic value) {
