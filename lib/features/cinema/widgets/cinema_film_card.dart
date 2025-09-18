@@ -97,12 +97,16 @@ class CinemaFilmCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ...infoChildren,
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton(
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
                     onPressed: () => _showShowtimes(context),
-                    child: const Text('Показать сеансы'),
+                    icon: const Icon(Icons.schedule_outlined),
+                    label: const Text('Показать сеансы'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                   ),
                 ),
               ],
@@ -178,6 +182,7 @@ class _ShowtimesSheet extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final showtimes = film.showtimes;
+    final cinemaGroups = _groupByCinema(showtimes);
 
     final titleStyle = (textTheme.titleLarge ?? const TextStyle(fontSize: 22)).copyWith(
       fontWeight: FontWeight.w600,
@@ -223,7 +228,7 @@ class _ShowtimesSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: showtimes.isEmpty
+            child: cinemaGroups.isEmpty
                 ? Center(
                     child: Text(
                       'Расписание недоступно',
@@ -231,20 +236,14 @@ class _ShowtimesSheet extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   )
-                : GridView.builder(
+                : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     physics: const BouncingScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 220,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.78,
-                    ),
-                    itemCount: showtimes.length,
+                    itemCount: cinemaGroups.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final showtime = showtimes[index];
-                      return _ShowtimeTile(showtime: showtime);
+                      final group = cinemaGroups[index];
+                      return _CinemaScheduleCard(group: group);
                     },
                   ),
           ),
@@ -252,12 +251,52 @@ class _ShowtimesSheet extends StatelessWidget {
       ),
     );
   }
+
+  List<_CinemaGroupData> _groupByCinema(List<CinemaShowtime> showtimes) {
+    final groups = <_CinemaGroupData>[];
+    final indexByCinema = <String, int>{};
+
+    for (final showtime in showtimes) {
+      final cinemaTitle = _resolveCinemaTitle(showtime);
+      final existingIndex = indexByCinema[cinemaTitle];
+      if (existingIndex == null) {
+        groups.add(
+          _CinemaGroupData(
+            cinemaTitle: cinemaTitle,
+            showtimes: [showtime],
+          ),
+        );
+        indexByCinema[cinemaTitle] = groups.length - 1;
+      } else {
+        groups[existingIndex].showtimes.add(showtime);
+      }
+    }
+
+    return groups;
+  }
+
+  String _resolveCinemaTitle(CinemaShowtime showtime) {
+    final normalizedName = _normalizeShowtimeValue(showtime.cinemaName);
+    final normalizedId = _normalizeShowtimeValue(showtime.cinemaId);
+    final resolved = normalizedName ?? normalizedId;
+    return resolved ?? 'Кинотеатр не указан';
+  }
 }
 
-class _ShowtimeTile extends StatelessWidget {
-  const _ShowtimeTile({required this.showtime});
+class _CinemaGroupData {
+  _CinemaGroupData({
+    required this.cinemaTitle,
+    List<CinemaShowtime>? showtimes,
+  }) : showtimes = List<CinemaShowtime>.from(showtimes ?? const []);
 
-  final CinemaShowtime showtime;
+  final String cinemaTitle;
+  final List<CinemaShowtime> showtimes;
+}
+
+class _CinemaScheduleCard extends StatelessWidget {
+  const _CinemaScheduleCard({required this.group});
+
+  final _CinemaGroupData group;
 
   @override
   Widget build(BuildContext context) {
@@ -265,76 +304,218 @@ class _ShowtimeTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    String? normalized(String value) {
-      final trimmed = value.trim();
-      return trimmed.isEmpty ? null : trimmed;
-    }
-
-    final whenText = normalized(showtime.when) ?? '—';
-    final timeText = normalized(showtime.time) ?? '—';
-
-    final details = <String>[];
-    final roomText = normalized(showtime.room);
-    if (roomText != null) {
-      details.add(roomText);
-    }
-    final formatText = normalized(showtime.format);
-    if (formatText != null) {
-      details.add(formatText);
-    }
-    final endTimeText = normalized(showtime.endTime);
-    if (endTimeText != null) {
-      details.add('До $endTimeText');
-    }
-
-    final whenStyle = (textTheme.bodyMedium ?? const TextStyle(fontSize: 14))
-        .copyWith(
+    final cinemaStyle = (textTheme.titleMedium ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w600,
       color: colorScheme.onSurface,
       height: 1.2,
     );
-    final timeStyle = (textTheme.headlineSmall ?? const TextStyle())
-        .copyWith(
-      fontSize: 24,
+    final dateStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
       fontWeight: FontWeight.w600,
-      color: colorScheme.primary,
-      height: 1.1,
-    );
-    final detailStyle = (textTheme.bodyMedium ?? const TextStyle(fontSize: 14))
-        .copyWith(
-      color: colorScheme.onSurface.withOpacity(0.75),
+      color: colorScheme.onSurface.withOpacity(0.7),
       height: 1.3,
     );
+    final detailStyle =
+        (textTheme.bodySmall ?? const TextStyle(fontSize: 12)).copyWith(
+      color: colorScheme.onSurface.withOpacity(0.8),
+      height: 1.3,
+    );
+    final timeStyle = (textTheme.titleLarge ?? const TextStyle()).copyWith(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      color: colorScheme.primary,
+      height: 1.2,
+    );
+
+    final dateGroups = _groupShowtimesByDate(group.showtimes);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.surfaceVariant.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outline.withOpacity(0.3),
+          color: colorScheme.outline.withOpacity(0.2),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(whenText, style: whenStyle),
-            const SizedBox(height: 6),
-            Text(
-              timeText,
-              style: timeStyle,
-            ),
-            if (details.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              for (var i = 0; i < details.length; i++) ...[
-                Text(details[i], style: detailStyle),
-                if (i < details.length - 1) const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    group.cinemaTitle,
+                    style: cinemaStyle,
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < dateGroups.length; i++) ...[
+              if (i > 0) ...[
+                const SizedBox(height: 12),
+                Divider(color: colorScheme.outline.withOpacity(0.2)),
+                const SizedBox(height: 12),
+              ],
+              Text(dateGroups[i].dateLabel, style: dateStyle),
+              const SizedBox(height: 8),
+              Column(
+                children: [
+                  for (var j = 0; j < dateGroups[i].showtimes.length; j++) ...[
+                    _ShowtimeRow(
+                      showtime: dateGroups[i].showtimes[j],
+                      timeStyle: timeStyle,
+                      detailStyle: detailStyle,
+                      colorScheme: colorScheme,
+                    ),
+                    if (j < dateGroups[i].showtimes.length - 1)
+                      const SizedBox(height: 12),
+                  ],
+                ],
+              ),
             ],
           ],
         ),
       ),
     );
   }
+}
+
+class _ShowtimeRow extends StatelessWidget {
+  const _ShowtimeRow({
+    required this.showtime,
+    required this.timeStyle,
+    required this.detailStyle,
+    required this.colorScheme,
+  });
+
+  final CinemaShowtime showtime;
+  final TextStyle timeStyle;
+  final TextStyle detailStyle;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final timeText = _normalizeShowtimeValue(showtime.time) ?? '—';
+
+    final details = <String>[];
+    final formatText = _normalizeShowtimeValue(showtime.format);
+    if (formatText != null) {
+      details.add(formatText);
+    }
+    final roomText = _normalizeShowtimeValue(showtime.room);
+    if (roomText != null) {
+      details.add('Зал $roomText');
+    }
+    final endTimeText = _normalizeShowtimeValue(showtime.endTime);
+    if (endTimeText != null) {
+      details.add('До $endTimeText');
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            child: Text(timeText, style: timeStyle),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: details.isEmpty
+              ? Text('Информация уточняется', style: detailStyle)
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final detail in details)
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: colorScheme.surfaceVariant.withOpacity(0.6),
+                          border: Border.all(
+                            color: colorScheme.outline.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: Text(detail, style: detailStyle),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShowtimeDateGroup {
+  _ShowtimeDateGroup({
+    required this.dateLabel,
+    List<CinemaShowtime>? showtimes,
+  }) : showtimes = List<CinemaShowtime>.from(showtimes ?? const []);
+
+  final String dateLabel;
+  final List<CinemaShowtime> showtimes;
+}
+
+List<_ShowtimeDateGroup> _groupShowtimesByDate(List<CinemaShowtime> showtimes) {
+  final groups = <_ShowtimeDateGroup>[];
+  final indexByDate = <String, int>{};
+
+  for (final showtime in showtimes) {
+    final dateLabel =
+        _normalizeShowtimeValue(showtime.when) ?? 'Дата не указана';
+    final index = indexByDate[dateLabel];
+    if (index == null) {
+      groups.add(
+        _ShowtimeDateGroup(
+          dateLabel: dateLabel,
+          showtimes: [showtime],
+        ),
+      );
+      indexByDate[dateLabel] = groups.length - 1;
+    } else {
+      groups[index].showtimes.add(showtime);
+    }
+  }
+
+  for (final group in groups) {
+    group.showtimes.sort((a, b) {
+      final timeA = _normalizeShowtimeValue(a.time);
+      final timeB = _normalizeShowtimeValue(b.time);
+      if (timeA == null && timeB == null) return 0;
+      if (timeA == null) return 1;
+      if (timeB == null) return -1;
+      return timeA.compareTo(timeB);
+    });
+  }
+
+  return groups;
+}
+
+String? _normalizeShowtimeValue(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
 
