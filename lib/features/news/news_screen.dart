@@ -42,10 +42,11 @@ class _NewsScreenState extends State<NewsScreen> {
     });
     try {
       final cats = await _api.fetchFeeds();
+      final validCats = cats.where((cat) => cat.id.isNotEmpty).toList();
       if (mounted) {
         setState(() {
-          _categories = cats;
-          _selectedIndex = _selectedIndex.clamp(0, cats.length);
+          _categories = validCats;
+          _selectedIndex = _selectedIndex.clamp(0, validCats.length);
         });
       }
     } catch (e) {
