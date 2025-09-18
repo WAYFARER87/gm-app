@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../core/services/events_api_service.dart';
-import '../../core/utils/html_utils.dart';
 import 'events_detail_screen.dart';
 import 'models/event_item.dart';
 import 'widgets/event_list_item_skeleton.dart';
 import 'utils/event_date_formatter.dart';
 
 class EventsList extends StatefulWidget {
-  const EventsList({super.key, this.categoryId});
+  const EventsList({
+    super.key,
+    this.categoryId,
+    this.categoryNames = const {},
+  });
 
   final String? categoryId;
+  final Map<String, String> categoryNames;
 
   @override
   State<EventsList> createState() => _EventsListState();
@@ -97,7 +101,8 @@ class _EventsListState extends State<EventsList> {
       if (_isLoading) {
         return ListView.separated(
           itemCount: 5,
-          separatorBuilder: (_, __) => const Divider(height: 0),
+          separatorBuilder: (_, __) =>
+              const Divider(height: 0, indent: 16, endIndent: 16),
           itemBuilder: (_, __) => const EventListItemSkeleton(),
         );
       }
@@ -130,7 +135,7 @@ class _EventsListState extends State<EventsList> {
           if (index >= _items.length - 1) {
             return const SizedBox.shrink();
           }
-          return const Divider(height: 0);
+          return const Divider(height: 0, indent: 16, endIndent: 16);
         },
         itemBuilder: (context, index) {
           if (index >= _items.length) {
@@ -156,6 +161,7 @@ class _EventsListState extends State<EventsList> {
           final item = _items[index];
           return EventListItem(
             item: item,
+            categoryName: widget.categoryNames[item.feedId],
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -171,135 +177,131 @@ class _EventsListState extends State<EventsList> {
 }
 
 class EventListItem extends StatelessWidget {
-  const EventListItem({super.key, required this.item, this.onTap});
+  const EventListItem({
+    super.key,
+    required this.item,
+    this.onTap,
+    this.categoryName,
+  });
 
   final EventItem item;
   final VoidCallback? onTap;
+  final String? categoryName;
 
   @override
   Widget build(BuildContext context) {
-    final imageHeight = MediaQuery.of(context).size.width * 0.56;
-    final summary = htmlToPlainText(item.summary.isNotEmpty
-        ? item.summary
-        : item.description);
     final date = formatEventDateRange(item.startDate, item.endDate);
+    final theme = Theme.of(context);
+    const posterWidth = 120.0;
+    const posterAspectRatio = 3 / 4;
+    final posterHeight = posterWidth / posterAspectRatio;
+    final colorScheme = theme.colorScheme;
+    final titleStyle = (theme.textTheme.titleMedium ?? const TextStyle())
+        .copyWith(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+      height: 1.2,
+    );
+    final baseInfoStyle =
+        (theme.textTheme.bodyMedium ?? const TextStyle(fontSize: 14)).copyWith(
+      fontSize: 14,
+      color: colorScheme.onSurface.withOpacity(0.75),
+      height: 1.4,
+    );
+    final labelStyle = baseInfoStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+    final placeParts = [
+      if (item.venueName.isNotEmpty) item.venueName,
+      if (item.venueAddress.isNotEmpty) item.venueAddress,
+    ];
+    final placeText =
+        placeParts.isNotEmpty ? placeParts.join(', ') : 'Не указано';
+    final categoryText = (categoryName ?? '').trim().isNotEmpty
+        ? categoryName!.trim()
+        : 'Не указана';
+    final dateText = date.isNotEmpty ? date : 'Не указана';
+
+    Widget buildPoster() {
+      final borderRadius = BorderRadius.circular(12);
+      final placeholder = Container(
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: const Icon(Icons.event, size: 32, color: Colors.grey),
+      );
+
+      if (item.image.isNotEmpty) {
+        final imageWidget = ClipRRect(
+          borderRadius: borderRadius,
+          child: Image.network(
+            item.image,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => placeholder,
+          ),
+        );
+        return Hero(
+          tag: 'event-${item.id}',
+          child: imageWidget,
+        );
+      }
+
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: placeholder,
+      );
+    }
+
+    Widget buildInfoLine(String label, String value) {
+      return Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: '$label: ', style: labelStyle),
+            TextSpan(text: value, style: baseInfoStyle),
+          ],
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (item.image.isNotEmpty)
-            Hero(
-              tag: 'event-${item.id}',
-              child: Image.network(
-                item.image,
-                width: double.infinity,
-                height: imageHeight,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: imageHeight,
-                  color: Colors.grey.shade200,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: posterWidth,
+              height: posterHeight,
+              child: buildPoster(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                  const SizedBox(height: 12),
+                  buildInfoLine('Место', placeText),
+                  const SizedBox(height: 8),
+                  buildInfoLine('Категория', categoryText),
+                  const SizedBox(height: 8),
+                  buildInfoLine('Дата', dateText),
+                ],
               ),
-            )
-          else
-            Container(
-              width: double.infinity,
-              height: imageHeight,
-              color: Colors.grey.shade200,
-              child: const Icon(Icons.event, size: 48, color: Colors.grey),
             ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (date.isNotEmpty)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.schedule, size: 18, color: Colors.grey),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          date,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 6),
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Roboto',
-                  ),
-                ),
-                if (summary.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      summary,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w300,
-                        fontFamily: 'Roboto',
-                      ),
-                    ),
-                  ),
-                if (item.venueName.isNotEmpty || item.venueAddress.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.place, size: 18, color: Colors.grey),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            [
-                              if (item.venueName.isNotEmpty) item.venueName,
-                              if (item.venueAddress.isNotEmpty) item.venueAddress,
-                            ].join(', '),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (item.price.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.sell, size: 18, color: Colors.grey),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            item.price,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
