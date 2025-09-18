@@ -3,7 +3,6 @@ import '../../core/services/news_api_service.dart';
 import '../../core/utils/html_utils.dart';
 import '../../core/utils/time_ago.dart';
 import 'models/news_item.dart';
-import 'package:share_plus/share_plus.dart';
 import 'news_detail_screen.dart';
 import 'widgets/news_list_item_skeleton.dart';
 
@@ -235,32 +234,15 @@ class NewsListItem extends StatelessWidget {
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          [
-                            if (item.published != null)
-                              timeAgo(item.published),
-                            if (item.author.trim().isNotEmpty) item.author,
-                          ].join(' · '),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.share, color: Colors.grey),
-                        onPressed: () {
-                          final text = [
-                            item.title,
-                            item.url,
-                          ].where((e) => e.trim().isNotEmpty).join('\n');
-                          if (text.isNotEmpty) Share.share(text);
-                        },
-                      ),
-                    ],
+                  child: Text(
+                    [
+                      if (item.published != null) timeAgo(item.published),
+                      if (item.author.trim().isNotEmpty) item.author,
+                    ].join(' · '),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ],
