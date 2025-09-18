@@ -12,7 +12,7 @@ class EventDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final description = htmlToPlainText(
+    final parsedDescription = htmlToPlainText(
       item.description.isNotEmpty ? item.description : item.summary,
     );
     final ticketInfo = _formatTicketInfo(item.price);
