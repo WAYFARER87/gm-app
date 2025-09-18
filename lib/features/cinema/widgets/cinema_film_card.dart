@@ -27,79 +27,74 @@ class CinemaFilmCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 2,
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _Poster(imageUrl: film.imageUrl),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  film.name.isNotEmpty ? film.name : 'Без названия',
-                  style: (textTheme.headlineSmall ?? const TextStyle()).copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                if (infoChips.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: infoChips,
-                  ),
-                ],
-                if (description != null && description.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    htmlToPlainText(description),
-                    style: (textTheme.bodyMedium ?? const TextStyle())
-                        .copyWith(height: 1.4),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (groups.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final entry in groups.entries) ...[
-                    if (entry != groups.entries.first) const SizedBox(height: 16),
+                  Text(
+                    film.name.isNotEmpty ? film.name : 'Без названия',
+                    style: (textTheme.headlineSmall ?? const TextStyle()).copyWith(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  if (infoChips.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: infoChips,
+                    ),
+                  ],
+                  if (description != null && description.isNotEmpty) ...[
+                    const SizedBox(height: 12),
                     Text(
-                      entry.key,
-                      style: (textTheme.titleMedium ?? const TextStyle()).copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.primary,
+                      htmlToPlainText(description),
+                      style: (textTheme.bodyMedium ?? const TextStyle())
+                          .copyWith(height: 1.4),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (groups.isNotEmpty) ...[
+                    for (final entry in groups.entries) ...[
+                      if (entry != groups.entries.first)
+                        const SizedBox(height: 16),
+                      Text(
+                        entry.key,
+                        style:
+                            (textTheme.titleMedium ?? const TextStyle()).copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final showtime in entry.value)
+                        _ShowtimeTile(
+                          showtime: showtime,
+                          onBuyPressed: showtime.hasBuyUrl
+                              ? () => _openBuyUrl(context, showtime.buyUrl)
+                              : null,
+                        ),
+                    ],
+                  ] else
+                    Text(
+                      'Нет ближайших сеансов',
+                      style:
+                          (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    for (final showtime in entry.value)
-                      _ShowtimeTile(
-                        showtime: showtime,
-                        onBuyPressed: showtime.hasBuyUrl
-                            ? () => _openBuyUrl(context, showtime.buyUrl)
-                            : null,
-                      ),
-                  ],
                 ],
               ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Text(
-                'Нет ближайших сеансов',
-                style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
             ),
+          ),
         ],
       ),
     );
@@ -207,26 +202,36 @@ class CinemaFilmCard extends StatelessWidget {
 class _Poster extends StatelessWidget {
   const _Poster({required this.imageUrl});
 
+  static const double _posterWidth = 132.0;
   final String imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Container(
-      color: Colors.grey.shade200,
-      alignment: Alignment.center,
-      child: const Icon(Icons.local_movies, size: 48, color: Colors.grey),
-    );
+    Widget placeholder() => Container(
+          color: Colors.grey.shade200,
+          alignment: Alignment.center,
+          child: const Icon(Icons.local_movies, size: 48, color: Colors.grey),
+        );
 
-    if (imageUrl.isEmpty) {
-      return AspectRatio(aspectRatio: 3 / 4, child: placeholder);
-    }
+    final poster = imageUrl.isEmpty
+        ? placeholder()
+        : Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => placeholder(),
+          );
 
-    return AspectRatio(
-      aspectRatio: 3 / 4,
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder,
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        bottomLeft: Radius.circular(20),
+      ),
+      child: SizedBox(
+        width: _posterWidth,
+        child: AspectRatio(
+          aspectRatio: 3 / 4,
+          child: poster,
+        ),
       ),
     );
   }
