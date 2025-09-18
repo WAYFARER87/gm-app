@@ -1,7 +1,6 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/utils/html_utils.dart';
 import '../models/cinema_film.dart';
@@ -20,6 +19,7 @@ class CinemaFilmCard extends StatelessWidget {
 
     final infoChips = _buildInfoChips(colorScheme, textTheme);
     final groups = _groupShowtimes(film.showtimes);
+    final showtimesByCinema = _groupShowtimesByCinema(film.showtimes);
     final description = film.description?.trim();
 
     return Card(
@@ -62,27 +62,11 @@ class CinemaFilmCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  if (groups.isNotEmpty) ...[
-                    for (final entry in groups.entries) ...[
-                      if (entry != groups.entries.first)
-                        const SizedBox(height: 16),
-                      Text(
-                        entry.key,
-                        style:
-                            (textTheme.titleMedium ?? const TextStyle()).copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      for (final showtime in entry.value)
-                        _ShowtimeTile(
-                          showtime: showtime,
-                          onBuyPressed: showtime.hasBuyUrl
-                              ? () => _openBuyUrl(context, showtime.buyUrl)
-                              : null,
-                        ),
-                    ],
+                  if (groups.isNotEmpty && showtimesByCinema.isNotEmpty) ...[
+                    _ShowtimeScheduleTable(
+                      dayLabels: groups.keys.toList(),
+                      cinemaShowtimes: showtimesByCinema,
+                    ),
                   ] else
                     Text(
                       'Нет ближайших сеансов',
@@ -155,6 +139,23 @@ class CinemaFilmCard extends StatelessWidget {
     return groups;
   }
 
+  LinkedHashMap<String, LinkedHashMap<String, List<CinemaShowtime>>>
+      _groupShowtimesByCinema(
+    List<CinemaShowtime> showtimes,
+  ) {
+    final groups =
+        LinkedHashMap<String, LinkedHashMap<String, List<CinemaShowtime>>>();
+    for (final showtime in showtimes) {
+      final cinemaGroup = groups.putIfAbsent(
+        showtime.cinemaId,
+        () => LinkedHashMap<String, List<CinemaShowtime>>(),
+      );
+      final key = showtime.when.isNotEmpty ? showtime.when : 'Расписание';
+      cinemaGroup.putIfAbsent(key, () => <CinemaShowtime>[]).add(showtime);
+    }
+    return groups;
+  }
+
   String? _durationText(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
@@ -174,29 +175,6 @@ class CinemaFilmCard extends StatelessWidget {
     return '$value ★';
   }
 
-  Future<void> _openBuyUrl(BuildContext context, String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      _showLaunchError(context);
-      return;
-    }
-    try {
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened) {
-        _showLaunchError(context);
-      }
-    } catch (_) {
-      _showLaunchError(context);
-    }
-  }
-
-  void _showLaunchError(BuildContext context) {
-    if (!context.mounted) return;
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(
-      const SnackBar(content: Text('Не удалось открыть ссылку')),
-    );
-  }
 }
 
 class _Poster extends StatelessWidget {
@@ -276,11 +254,15 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-class _ShowtimeTile extends StatelessWidget {
-  const _ShowtimeTile({required this.showtime, this.onBuyPressed});
+class _ShowtimeScheduleTable extends StatelessWidget {
+  const _ShowtimeScheduleTable({
+    required this.dayLabels,
+    required this.cinemaShowtimes,
+  });
 
-  final CinemaShowtime showtime;
-  final VoidCallback? onBuyPressed;
+  final List<String> dayLabels;
+  final LinkedHashMap<String, LinkedHashMap<String, List<CinemaShowtime>>>
+      cinemaShowtimes;
 
   @override
   Widget build(BuildContext context) {
@@ -288,67 +270,135 @@ class _ShowtimeTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final details = <String>[];
-    final cinemaName = htmlToPlainText(showtime.cinemaId).replaceAll('\n', ', ');
-    if (cinemaName.trim().isNotEmpty) {
-      details.add(cinemaName.trim());
-    }
-    if (showtime.endTime.trim().isNotEmpty) {
-      details.add('До ${showtime.endTime.trim()}');
+    final headerStyle = (textTheme.bodySmall ?? const TextStyle()).copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface.withOpacity(0.6),
+    );
+    final cinemaStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+    final timeStyle = (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+      color: colorScheme.onSurface,
+    );
+    final emptyStyle = timeStyle.copyWith(
+      color: colorScheme.onSurface.withOpacity(0.4),
+    );
+
+    return Table(
+      columnWidths: {
+        0: const IntrinsicColumnWidth(),
+        for (var i = 1; i <= dayLabels.length; i++) i: const FlexColumnWidth(),
+      },
+      defaultVerticalAlignment: TableCellVerticalAlignment.top,
+      children: [
+        TableRow(
+          children: [
+            _ScheduleCell(
+              child: Text('Кинотеатр', style: headerStyle),
+            ),
+            for (final day in dayLabels)
+              _ScheduleCell(
+                alignCenter: true,
+                child: Text(
+                  _formatDayLabel(day),
+                  style: headerStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
+        for (final cinemaEntry in cinemaShowtimes.entries)
+          TableRow(
+            children: [
+              _ScheduleCell(
+                child: Text(
+                  _formatCinemaName(cinemaEntry.key),
+                  style: cinemaStyle,
+                ),
+              ),
+              for (final day in dayLabels)
+                _ScheduleCell(
+                  alignCenter: true,
+                  child: _buildTimeCell(
+                    cinemaEntry.value[day] ?? const <CinemaShowtime>[],
+                    timeStyle,
+                    emptyStyle,
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  static String _formatDayLabel(String raw) {
+    final plain = htmlToPlainText(raw).trim();
+    return plain.isNotEmpty ? plain : raw;
+  }
+
+  static String _formatCinemaName(String raw) {
+    final plain = htmlToPlainText(raw).replaceAll('\n', ' ').trim();
+    return plain.isNotEmpty ? plain : 'Кинотеатр';
+  }
+
+  static Widget _buildTimeCell(
+    List<CinemaShowtime> showtimes,
+    TextStyle timeStyle,
+    TextStyle emptyStyle,
+  ) {
+    final values = showtimes
+        .map(_formatShowtime)
+        .where((value) => value.isNotEmpty)
+        .toList();
+
+    if (values.isEmpty) {
+      return Text('—', style: emptyStyle, textAlign: TextAlign.center);
     }
 
-    final timeParts = <String>[];
-    if (showtime.time.trim().isNotEmpty) {
-      timeParts.add(showtime.time.trim());
-    }
-    if (showtime.room.trim().isNotEmpty) {
-      timeParts.add(showtime.room.trim());
-    }
-    if (showtime.format.trim().isNotEmpty) {
-      timeParts.add(showtime.format.trim());
+    return Text(
+      values.join('\n'),
+      style: timeStyle,
+      textAlign: TextAlign.center,
+    );
+  }
+
+  static String _formatShowtime(CinemaShowtime showtime) {
+    final parts = <String>[];
+
+    final time = showtime.time.trim();
+    if (time.isNotEmpty) {
+      parts.add(time);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.primary.withOpacity(0.15)),
-        borderRadius: BorderRadius.circular(16),
-        color: colorScheme.primary.withOpacity(0.05),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (timeParts.isNotEmpty)
-            Text(
-              timeParts.join(' • '),
-              style: (textTheme.titleSmall ?? const TextStyle()).copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          if (details.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              details.join('\n'),
-              style: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-                color: colorScheme.onSurface.withOpacity(0.75),
-                height: 1.3,
-              ),
-            ),
-          ],
-          if (onBuyPressed != null) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onBuyPressed,
-                icon: const Icon(Icons.shopping_bag_outlined),
-                label: const Text('Купить билет'),
-              ),
-            ),
-          ],
-        ],
+    final room = showtime.room.trim();
+    if (room.isNotEmpty) {
+      parts.add(room);
+    }
+
+    final format = showtime.format.trim();
+    if (format.isNotEmpty) {
+      parts.add(format);
+    }
+
+    return parts.join(' • ');
+  }
+}
+
+class _ScheduleCell extends StatelessWidget {
+  const _ScheduleCell({required this.child, this.alignCenter = false});
+
+  final Widget child;
+  final bool alignCenter;
+
+  @override
+  Widget build(BuildContext context) {
+    final alignment = alignCenter ? Alignment.center : Alignment.centerLeft;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      child: Align(
+        alignment: alignment,
+        child: child,
       ),
     );
   }
