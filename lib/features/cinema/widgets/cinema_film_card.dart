@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../models/cinema_film.dart';
@@ -55,40 +53,38 @@ class CinemaFilmCard extends StatelessWidget {
     final durationValue = _durationText(film.duration);
     final durationText = normalizeValue(durationValue, 'Не указана');
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 2,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 640;
-          final horizontalSpacing = isCompact ? 16.0 : 24.0;
-          final contentPadding = EdgeInsets.fromLTRB(
-            0,
-            isCompact ? 20 : 24,
-            isCompact ? 16 : 24,
-            24,
-          );
+    final infoItems = <MapEntry<String, String>>[
+      MapEntry('Год', yearText),
+      MapEntry('Страна', countryText),
+      MapEntry('Жанр', genreText),
+      MapEntry('Длительность', durationText),
+    ];
 
-          final infoItems = <MapEntry<String, String>>[
-            MapEntry('Год', yearText),
-            MapEntry('Страна', countryText),
-            MapEntry('Жанр', genreText),
-            MapEntry('Длительность', durationText),
-          ];
+    final infoChildren = <Widget>[];
+    for (var i = 0; i < infoItems.length; i++) {
+      final item = infoItems[i];
+      infoChildren.add(buildInfoLine(item.key, item.value));
+      if (i < infoItems.length - 1) {
+        infoChildren.add(const SizedBox(height: 8));
+      }
+    }
 
-          final infoChildren = <Widget>[];
-          for (var i = 0; i < infoItems.length; i++) {
-            final item = infoItems[i];
-            infoChildren.add(buildInfoLine(item.key, item.value));
-            if (i < infoItems.length - 1) {
-              infoChildren.add(const SizedBox(height: 8));
-            }
-          }
+    const posterWidth = 120.0;
+    const posterAspectRatio = 3 / 4;
+    final posterHeight = posterWidth / posterAspectRatio;
 
-          final details = Padding(
-            padding: contentPadding,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: posterWidth,
+            height: posterHeight,
+            child: _Poster(imageUrl: film.imageUrl),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -102,31 +98,8 @@ class CinemaFilmCard extends StatelessWidget {
                 ...infoChildren,
               ],
             ),
-          );
-
-          final basePosterWidth =
-              isCompact ? 120.0 : _Poster.defaultWidth;
-          final maxPosterWidth = constraints.maxWidth - horizontalSpacing;
-          final posterWidth =
-              (maxPosterWidth.isFinite && maxPosterWidth > 0)
-                  ? math.min(
-                      basePosterWidth,
-                      maxPosterWidth * (isCompact ? 0.45 : 0.35),
-                    )
-                  : basePosterWidth;
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Poster(
-                imageUrl: film.imageUrl,
-                width: posterWidth,
-              ),
-              SizedBox(width: horizontalSpacing),
-              Expanded(child: details),
-            ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -144,42 +117,28 @@ class CinemaFilmCard extends StatelessWidget {
 }
 
 class _Poster extends StatelessWidget {
-  const _Poster({required this.imageUrl, required this.width});
+  const _Poster({required this.imageUrl});
 
-  static const double defaultWidth = 136.0;
   final String imageUrl;
-  final double width;
 
   @override
   Widget build(BuildContext context) {
-    Widget placeholder() => Container(
-          color: Colors.grey.shade200,
-          alignment: Alignment.center,
-          child: const Icon(Icons.local_movies, size: 48, color: Colors.grey),
-        );
-
-    final poster = imageUrl.isEmpty
-        ? placeholder()
-        : Image.network(
-            imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => placeholder(),
-          );
-
-    final posterWidth = width.isFinite && width > 0 ? width : defaultWidth;
+    final borderRadius = BorderRadius.circular(12);
+    final placeholder = Container(
+      color: Colors.grey.shade200,
+      alignment: Alignment.center,
+      child: const Icon(Icons.local_movies, size: 48, color: Colors.grey),
+    );
 
     return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(20),
-        bottomLeft: Radius.circular(20),
-      ),
-      child: SizedBox(
-        width: posterWidth,
-        child: AspectRatio(
-          aspectRatio: 3 / 4,
-          child: poster,
-        ),
-      ),
+      borderRadius: borderRadius,
+      child: imageUrl.isEmpty
+          ? placeholder
+          : Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => placeholder,
+            ),
     );
   }
 }
