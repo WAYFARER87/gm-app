@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/cinema_film.dart';
+import '../models/cinema_showtime.dart';
 
 class CinemaFilmCard extends StatelessWidget {
   const CinemaFilmCard({super.key, required this.film});
@@ -96,6 +97,14 @@ class CinemaFilmCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ...infoChildren,
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton(
+                    onPressed: () => _showShowtimes(context),
+                    child: const Text('Показать сеансы'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -117,6 +126,18 @@ class CinemaFilmCard extends StatelessWidget {
     return trimmed;
   }
 
+  void _showShowtimes(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      builder: (context) => _ShowtimesSheet(film: film),
+    );
+  }
 }
 
 class _Poster extends StatelessWidget {
@@ -142,6 +163,177 @@ class _Poster extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => placeholder,
             ),
+    );
+  }
+}
+
+class _ShowtimesSheet extends StatelessWidget {
+  const _ShowtimesSheet({required this.film});
+
+  final CinemaFilm film;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final showtimes = film.showtimes;
+
+    final titleStyle = (textTheme.titleLarge ?? const TextStyle(fontSize: 22)).copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+    );
+    final subtitleStyle =
+        (textTheme.bodyMedium ?? const TextStyle(fontSize: 14)).copyWith(
+      color: colorScheme.onSurface.withOpacity(0.7),
+    );
+
+    return FractionallySizedBox(
+      heightFactor: 0.75,
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Сеансы', style: titleStyle),
+                      if (film.name.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          film.name,
+                          style: subtitleStyle,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Закрыть',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: showtimes.isEmpty
+                ? Center(
+                    child: Text(
+                      'Расписание недоступно',
+                      style: subtitleStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 220,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.78,
+                    ),
+                    itemCount: showtimes.length,
+                    itemBuilder: (context, index) {
+                      final showtime = showtimes[index];
+                      return _ShowtimeTile(showtime: showtime);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShowtimeTile extends StatelessWidget {
+  const _ShowtimeTile({required this.showtime});
+
+  final CinemaShowtime showtime;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    String? normalized(String value) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    final whenText = normalized(showtime.when) ?? '—';
+    final timeText = normalized(showtime.time) ?? '—';
+
+    final details = <String>[];
+    final roomText = normalized(showtime.room);
+    if (roomText != null) {
+      details.add(roomText);
+    }
+    final formatText = normalized(showtime.format);
+    if (formatText != null) {
+      details.add(formatText);
+    }
+    final endTimeText = normalized(showtime.endTime);
+    if (endTimeText != null) {
+      details.add('До $endTimeText');
+    }
+
+    final whenStyle = (textTheme.bodyMedium ?? const TextStyle(fontSize: 14))
+        .copyWith(
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurface,
+      height: 1.2,
+    );
+    final timeStyle = (textTheme.headlineSmall ?? const TextStyle())
+        .copyWith(
+      fontSize: 24,
+      fontWeight: FontWeight.w600,
+      color: colorScheme.primary,
+      height: 1.1,
+    );
+    final detailStyle = (textTheme.bodyMedium ?? const TextStyle(fontSize: 14))
+        .copyWith(
+      color: colorScheme.onSurface.withOpacity(0.75),
+      height: 1.3,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withOpacity(0.3),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(whenText, style: whenStyle),
+            const SizedBox(height: 6),
+            Text(
+              timeText,
+              style: timeStyle,
+            ),
+            if (details.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              for (var i = 0; i < details.length; i++) ...[
+                Text(details[i], style: detailStyle),
+                if (i < details.length - 1) const SizedBox(height: 4),
+              ],
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
