@@ -37,6 +37,33 @@ void main() {
     expect(fallbackCategory.categoryName, 'Театр');
   });
 
+  test('EventItem.fromJson builds ticket info from tickets field only', () {
+    final item = EventItem.fromJson({
+      'id': 21,
+      'feed_id': '510',
+      'title': 'Ticketed Event',
+      'price': 'Should be ignored',
+      'tickets': [
+        {'name': 'Взрослый', 'price': '500 ₽'},
+        {'name': 'Детский', 'price': '300 ₽'},
+      ],
+    });
+
+    expect(item.price, 'Взрослый — 500 ₽\nДетский — 300 ₽');
+  });
+
+  test('EventItem.fromJson keeps price empty when tickets lack info', () {
+    final item = EventItem.fromJson({
+      'id': 22,
+      'feed_id': '511',
+      'title': 'Free Event',
+      'price': '250 ₽',
+      'tickets': null,
+    });
+
+    expect(item.price, isEmpty);
+  });
+
   testWidgets('EventListItem displays parsed summary text', (tester) async {
     final item = EventItem.fromJson({
       'id': 7,
@@ -125,6 +152,97 @@ void main() {
 
     await tester.pump();
 
-    expect(find.text('21:00'), findsOneWidget);
+    expect(find.textContaining('21:00'), findsOneWidget);
+  });
+
+  testWidgets('EventDetailScreen renders multiline description', (tester) async {
+    final item = EventItem.fromJson({
+      'id': 14,
+      'feed_id': '330',
+      'title': 'Description Event',
+      'description': '<p>Первый абзац</p><p>Второй абзац</p>',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EventDetailScreen(item: item),
+      ),
+    );
+
+    await tester.pump();
+
+    final description =
+        tester.widget<Text>(find.byKey(const Key('event-description')));
+    expect(description.data, 'Первый абзац\n\nВторой абзац');
+  });
+
+  testWidgets('EventDetailScreen hides ticket summary when absent', (tester) async {
+    final item = EventItem.fromJson({
+      'id': 15,
+      'feed_id': '331',
+      'title': 'No Tickets Event',
+      'description': '',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EventDetailScreen(item: item),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.textContaining('Билеты'), findsNothing);
+  });
+
+  testWidgets('EventDetailScreen displays venue summary near poster',
+      (tester) async {
+    final item = EventItem.fromJson({
+      'id': 17,
+      'feed_id': '333',
+      'title': 'Venue Summary Event',
+      'venue_name': 'Муниципальный центр культуры (ДКМ)',
+      'venue_address': 'Пролетарская 1',
+      'description': '',
+      'summary': '',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EventDetailScreen(item: item),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(
+      find.textContaining(
+        'Муниципальный центр культуры (ДКМ), Пролетарская 1',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('EventDetailScreen opens poster viewer on tap', (tester) async {
+    final item = EventItem.fromJson({
+      'id': 16,
+      'feed_id': '332',
+      'title': 'Poster Viewer Event',
+      'description': '',
+      'summary': '',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EventDetailScreen(item: item),
+      ),
+    );
+
+    await tester.pump();
+
+    await tester.tap(find.byHeroTag('event-${item.id}'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Постер'), findsOneWidget);
   });
 }
