@@ -47,6 +47,8 @@ class _MyAppState extends State<MyApp> {
           elevation: 0,
           centerTitle: false,
         ),
+        progressIndicatorTheme:
+            base.progressIndicatorTheme.copyWith(color: _primary),
         tabBarTheme: TabBarThemeData(
           labelColor: _primary,
           unselectedLabelColor: Colors.black54,
