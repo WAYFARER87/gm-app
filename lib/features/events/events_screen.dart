@@ -86,6 +86,9 @@ class _EventsScreenState extends State<EventsScreen> {
     }
 
     final initialIndex = _selectedIndex.clamp(0, _categories.length);
+    final categoryNames = {
+      for (final cat in _categories) cat.id: cat.name,
+    };
 
     return DefaultTabController(
       length: _categories.length + 1,
@@ -121,13 +124,15 @@ class _EventsScreenState extends State<EventsScreen> {
           Expanded(
             child: TabBarView(
               children: [
-                const EventsList(
-                  key: PageStorageKey('events-all'),
+                EventsList(
+                  key: const PageStorageKey('events-all'),
+                  categoryNames: categoryNames,
                 ),
                 for (final cat in _categories)
                   EventsList(
                     key: PageStorageKey('events-${cat.id}'),
                     categoryId: cat.id,
+                    categoryNames: categoryNames,
                   ),
               ],
             ),
