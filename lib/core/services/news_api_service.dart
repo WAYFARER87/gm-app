@@ -60,7 +60,7 @@ class NewsApiService {
   }) async {
     final params = <String, dynamic>{'page': page, 'perPage': perPage};
     if (categoryId?.isNotEmpty ?? false) {
-      params['feed_id'] = categoryId;
+      params['category_id'] = categoryId;
     }
 
     final res = await _dio.get('news', queryParameters: params);
