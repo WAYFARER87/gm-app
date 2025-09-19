@@ -152,6 +152,7 @@ class _NewsListState extends State<NewsList> {
                   builder: (_) => NewsDetailScreen(
                     initialItems: _items,
                     initialIndex: index,
+                    categoryId: widget.categoryId,
                   ),
                 ),
               );

@@ -9,10 +9,12 @@ class NewsDetailScreen extends StatefulWidget {
     super.key,
     required this.initialItems,
     required this.initialIndex,
+    this.categoryId,
   });
 
   final List<NewsItem> initialItems;
   final int initialIndex;
+  final String? categoryId;
 
   @override
   State<NewsDetailScreen> createState() => _NewsDetailScreenState();
@@ -27,10 +29,12 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
   int _page = 1;
   int _pages = 1;
   late PageController _pageController;
+  late final String? _categoryId;
 
   @override
   void initState() {
     super.initState();
+    _categoryId = widget.categoryId;
     _items = List.of(widget.initialItems);
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
@@ -58,7 +62,10 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
       _error = null;
     });
     try {
-      final page = await _api.fetchNews(page: _page);
+      final page = await _api.fetchNews(
+        page: _page,
+        categoryId: _categoryId,
+      );
       setState(() {
         _items.addAll(page.items);
         _page = page.page + 1;
