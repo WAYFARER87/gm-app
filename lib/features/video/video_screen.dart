@@ -46,7 +46,7 @@ class _VideoScreenState extends State<VideoScreen> {
       if (mounted) {
         setState(() {
           _categories = validCats;
-          _selectedIndex = _selectedIndex.clamp(0, validCats.length);
+          _selectedIndex = 0;
         });
       }
     } catch (e) {
@@ -80,10 +80,10 @@ class _VideoScreenState extends State<VideoScreen> {
       );
     }
 
-    final initialIndex = _selectedIndex.clamp(0, _categories.length);
+    final initialIndex = (_categories.isEmpty ? 0 : _selectedIndex).clamp(0, _categories.length - 1);
 
     return DefaultTabController(
-      length: _categories.length + 1,
+      length: _categories.length,
       initialIndex: initialIndex,
       child: Column(
         children: [
@@ -102,7 +102,6 @@ class _VideoScreenState extends State<VideoScreen> {
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 tabs: [
-                  const Tab(text: 'Все видео'),
                   for (final cat in _categories) Tab(text: cat.name),
                 ],
                 onTap: (index) {
@@ -118,9 +117,6 @@ class _VideoScreenState extends State<VideoScreen> {
           Expanded(
             child: TabBarView(
               children: [
-                const VideoList(
-                  key: PageStorageKey('videos-all'),
-                ),
                 for (final cat in _categories)
                   VideoList(
                     key: PageStorageKey('videos-${cat.id}'),

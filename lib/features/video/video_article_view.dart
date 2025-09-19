@@ -141,12 +141,13 @@ class _VideoArticleViewState extends State<VideoArticleView> {
                 ),
               ],
               systemOverlayStyle: overlayStyle,
-              flexibleSpace: FlexibleSpaceBar(
+              
+flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
                     if (hasVideo)
-                      mediaContent
+                      Container(color: Colors.black)
                     else
                       Hero(
                         tag: item.id,
@@ -178,8 +179,7 @@ class _VideoArticleViewState extends State<VideoArticleView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (item.rubric != null &&
-                              item.rubric!.name.isNotEmpty)
+                          if (item.rubric != null && item.rubric!.name.isNotEmpty)
                             Text(
                               item.rubric!.name.toUpperCase(),
                               style: const TextStyle(
@@ -195,44 +195,6 @@ class _VideoArticleViewState extends State<VideoArticleView> {
                                 ],
                               ),
                             ),
-                          Text(
-                            item.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              height: 1.2,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1),
-                                )
-                              ],
-                            ),
-                          ),
-                          if (descPlain.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              descPlain,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                height: 1.25,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -245,8 +207,32 @@ class _VideoArticleViewState extends State<VideoArticleView> {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (meta.isNotEmpty)
+                  
+children: [
+  
+if (hasVideo)
+  AspectRatio(
+    aspectRatio: 16/9,
+    child: _MediaContent(item: item, videoHtml: videoHtml),
+  ),
+if (hasVideo) const SizedBox(height: 12),
+
+// Title and annotation
+Text(
+  item.title,
+  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
+),
+const SizedBox(height: 8),
+if (descPlain.isNotEmpty)
+  Text(
+    descPlain,
+    style: const TextStyle(fontSize: 16, color: Colors.black87),
+  ),
+const SizedBox(height: 12),
+
+
+  if (meta.isNotEmpty)
+
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
@@ -260,7 +246,7 @@ class _VideoArticleViewState extends State<VideoArticleView> {
                     Html(
                       data: item.contentFull,
                       style: {
-                        '*': Style(fontSize: FontSize(18 * _textScaleFactor)),
+                        '*': Style(fontSize: FontSize(18 * _textScaleFactor), color: Colors.black),
                         'p': Style(margin: Margins.only(top: 0, bottom: 12)),
                         'ul': Style(margin: Margins.only(top: 0, bottom: 12)),
                         'ol': Style(margin: Margins.only(top: 0, bottom: 12)),
@@ -289,18 +275,8 @@ class _MediaContent extends StatelessWidget {
     if (videoHtml != null) {
       return _VideoIframePlayer(html: videoHtml!);
     }
-
-    final imageUrl = item.image.trim();
-    if (imageUrl.isEmpty) {
-      return Container(color: Colors.grey.shade200);
-    }
-
-    return CachedNetworkImage(
-      imageUrl: imageUrl,
-      fit: BoxFit.cover,
-      placeholder: (_, __) => Container(color: Colors.grey.shade200),
-      errorWidget: (_, __, ___) => Container(color: Colors.grey.shade200),
-    );
+    // No image in detail per requirement
+    return const SizedBox.shrink();
   }
 }
 
@@ -392,38 +368,75 @@ class _VideoIframePlayerState extends State<_VideoIframePlayer> {
     final platformController = _controller.platform;
     if (platformController is AndroidWebViewController) {
       platformController.setMediaPlaybackRequiresUserGesture(false);
+    
+      platformController.setMixedContentMode(MixedContentMode.alwaysAllow);
     }
   }
-
   void _loadHtml(String iframeHtml) {
-    final document = _buildHtmlDocument(iframeHtml);
-    _controller.loadHtmlString(document, baseUrl: 'https://vk.com/');
+  // Try to extract VK src and load it directly to avoid Referrer/ITP issues in iframes.
+  final m = RegExp(r'src="([^"]+)"').firstMatch(iframeHtml);
+  if (m != null) {
+    final raw = m.group(1)!;
+    final fixed = _normalizeVkSrc(raw);
+    final uri = Uri.parse(fixed);
+    if (uri.host.contains('vk.com') || uri.host.contains('vkvideo.ru')) {
+      // Load the embed page directly (full document), not via an <iframe> wrapper.
+      _controller.loadRequest(uri);
+      return;
+    }
   }
+  // Fallback: wrap in minimal HTML
+  final fixed = _normalizeVkIframe(iframeHtml);
+  final document = _buildHtmlDocument(fixed);
+  _controller.loadHtmlString(document, baseUrl: 'https://vkvideo.ru/');
+}
+String _normalizeVkSrc(String rawSrc) {
+  var s = rawSrc
+      .replaceFirst('https://vk.com/video_ext.php', 'https://vkvideo.ru/video_ext.php')
+      .replaceFirst('http://vk.com/video_ext.php', 'https://vkvideo.ru/video_ext.php');
+  // Ensure autoplay and playsinline exist
+  final uri = Uri.parse(s);
+  final q = Map<String, String>.from(uri.queryParameters);
+  q.putIfAbsent('autoplay', () => '1');
+  q.putIfAbsent('playsinline', () => '1');
+  final newUri = Uri(
+    scheme: uri.scheme.isEmpty ? 'https' : uri.scheme,
+    host: uri.host.isEmpty ? 'vkvideo.ru' : uri.host,
+    path: uri.path,
+    queryParameters: q.isEmpty ? null : q,
+  );
+  return newUri.toString();
+}
 
-  String _buildHtmlDocument(String iframeHtml) {
-    return '''
+String _normalizeVkIframe(String iframeHtml) {
+  final m = RegExp(r'src="([^"]+)"').firstMatch(iframeHtml);
+  if (m == null) return iframeHtml;
+  final src = m.group(1)!;
+  final fixed = _normalizeVkSrc(src);
+  return iframeHtml.replaceFirst(src, fixed);
+}
+
+
+String _buildHtmlDocument(String iframeHtml) {
+  return '''
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        background-color: #000;
-      }
-
-      iframe {
-        border: 0;
-      }
+      html, body { margin:0; padding:0; height:100%; background:#000; }
+      .wrap { position:relative; width:100vw; max-width:100%; }
+      .wrap::before { content:""; display:block; padding-top:56.25%; } /* 16:9 */
+      .wrap > iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
     </style>
   </head>
   <body>
-    $iframeHtml
+    <div class="wrap">$iframeHtml</div>
   </body>
 </html>
 ''';
-  }
+}
+
 
   @override
   Widget build(BuildContext context) {

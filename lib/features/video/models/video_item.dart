@@ -49,7 +49,7 @@ class VideoItem {
       image: (json['image'] ?? json['image_url'] ?? json['photo_url'] ?? '').toString(),
       url: (json['url'] ?? json['link'] ?? '').toString(),
       author: (json['author'] ?? '').toString(),
-      videoFrame: (json['video_frame'] ?? json['videoFrame'] ?? '').toString(),
+      videoFrame: (json['video_frame'] ?? json['videoFrame'] ?? json['video'] ?? '').toString(),
       published: published,
       rubric: rubric,
     );
