@@ -6,6 +6,7 @@ import '../afisha/afisha_screen.dart';
 import '../cinema/cinema_screen.dart';
 import '../events/events_screen.dart';
 import '../news/news_screen.dart';
+import '../video/video_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _primary = Color(0xFF182857);
   static const List<Widget> _pages = [
     NewsScreen(),
+    VideoScreen(),
     EventsScreen(),
     AfishaScreen(),
     CinemaScreen(),
@@ -91,6 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (i) => setState(() => _index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.article), label: 'Новости'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.ondemand_video),
+            label: 'Видео',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.event), label: 'События'),
           BottomNavigationBarItem(icon: Icon(Icons.local_activity), label: 'Афиша'),
           BottomNavigationBarItem(icon: Icon(Icons.movie), label: 'Кино'),
