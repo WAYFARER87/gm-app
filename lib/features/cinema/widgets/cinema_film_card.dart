@@ -82,7 +82,7 @@ class CinemaFilmCard extends StatelessWidget {
           SizedBox(
             width: posterWidth,
             height: posterHeight,
-            child: _Poster(imageUrl: film.imageUrl),
+            child: InkWell(onTap: () => _showShowtimes(context), child: _Poster(imageUrl: film.imageUrl)),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -97,18 +97,6 @@ class CinemaFilmCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 ...infoChildren,
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _showShowtimes(context),
-                    icon: const Icon(Icons.schedule_outlined),
-                    label: const Text('Показать сеансы'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -131,17 +119,100 @@ class CinemaFilmCard extends StatelessWidget {
   }
 
   void _showShowtimes(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      builder: (context) => _ShowtimesSheet(film: film),
-    );
-  }
+  showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      final cs = Theme.of(context).colorScheme;
+      final tt = Theme.of(context).textTheme;
+      final desc = (film.description ?? '').trim();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 12, left: 16, right: 16, bottom: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: cs.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  splashRadius: 20,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ],
+            ),
+            if (desc.isNotEmpty) ...[
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                builder: (context, t, child) {
+                  return Opacity(
+                    opacity: t,
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - t) * 8),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Text(
+                  desc,
+                  style: tt.bodyLarge?.copyWith(
+                    color: cs.onSurface.withOpacity(0.92),
+                    height: 1.45,
+                  ),
+                  softWrap: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 12,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      cs.outlineVariant.withOpacity(0.0),
+                      cs.outlineVariant.withOpacity(0.6),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(4)),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            SizedBox(
+              height: 90,
+              child: _ShowtimesStrip(
+                showtimes: film.showtimes,
+                onTapItem: null,
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 }
 
 class _Poster extends StatelessWidget {
@@ -168,6 +239,75 @@ class _Poster extends StatelessWidget {
               errorBuilder: (_, __, ___) => placeholder,
             ),
     );
+  }
+}
+
+
+class _ShowtimesStrip extends StatelessWidget {
+  const _ShowtimesStrip({required this.showtimes, this.onTapItem});
+
+  final List<CinemaShowtime> showtimes;
+  final VoidCallback? onTapItem;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final tt = theme.textTheme;
+
+    if (showtimes.isEmpty) return const SizedBox.shrink();
+
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      itemCount: showtimes.length,
+      separatorBuilder: (context, index) => const SizedBox(width: 8),
+      itemBuilder: (context, i) {
+        final s = showtimes[i];
+        final when = _normalizeWhen(s.when);
+        final time = (s.time.trim().isNotEmpty ? s.time.trim() : '—:—');
+        final cinemaRaw = (s.cinemaName.isNotEmpty ? s.cinemaName : s.cinemaId).trim();
+        final cinema = cinemaRaw.isEmpty ? 'Кинотеатр не указан' : cinemaRaw;
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTapItem,
+          child: Container(
+            height: 90,
+            width: 168,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: cs.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(when, style: tt.bodySmall?.copyWith(color: cs.onSurface.withOpacity(0.7))),
+                const SizedBox(height: 4),
+                Text(time, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Text(
+                  cinema,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tt.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _normalizeWhen(String w) {
+    final lw = w.trim().toLowerCase();
+    if (lw == 'сегодня') return 'Сегодня';
+    if (lw == 'завтра') return 'Завтра';
+    return w.trim().isEmpty ? 'Дата не указана' : w.trim();
   }
 }
 
