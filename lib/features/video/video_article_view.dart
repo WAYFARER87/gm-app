@@ -6,6 +6,8 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../core/utils/html_utils.dart';
 import '../../core/utils/image_brightness.dart';
@@ -351,10 +353,10 @@ class _VideoIframePlayerState extends State<_VideoIframePlayer> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
+    final params = _createPlatformParams();
+    _controller = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
-      ..setMediaPlaybackRequiresUserGesture(false)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) {
@@ -363,6 +365,7 @@ class _VideoIframePlayerState extends State<_VideoIframePlayer> {
           },
         ),
       );
+    _configurePlatformController();
     _loadHtml(widget.html);
   }
 
@@ -372,6 +375,23 @@ class _VideoIframePlayerState extends State<_VideoIframePlayer> {
     if (oldWidget.html != widget.html) {
       setState(() => _isLoading = true);
       _loadHtml(widget.html);
+    }
+  }
+
+  PlatformWebViewControllerCreationParams _createPlatformParams() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+      );
+    }
+    return const PlatformWebViewControllerCreationParams();
+  }
+
+  void _configurePlatformController() {
+    final platformController = _controller.platform;
+    if (platformController is AndroidWebViewController) {
+      platformController.setMediaPlaybackRequiresUserGesture(false);
     }
   }
 
