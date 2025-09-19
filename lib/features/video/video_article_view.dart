@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/utils/html_utils.dart';
 import '../../core/utils/image_brightness.dart';
@@ -86,8 +87,10 @@ class _VideoArticleViewState extends State<VideoArticleView> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
-    final hasVideo = item.videoFrame.trim().isNotEmpty;
+    final videoUrl = _extractVideoUri(item.videoFrame);
+    final hasVideo = videoUrl != null;
     final dark = hasVideo ? true : (_isPhotoDark ?? true);
+    final mediaContent = _MediaContent(item: item, videoUrl: videoUrl);
     final iconColor =
         _collapsed ? Colors.black87 : (dark ? Colors.white : Colors.black87);
     final overlayStyle = _collapsed
@@ -139,10 +142,13 @@ class _VideoArticleViewState extends State<VideoArticleView> {
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Hero(
-                      tag: item.id,
-                      child: _MediaContent(item: item),
-                    ),
+                    if (hasVideo)
+                      mediaContent
+                    else
+                      Hero(
+                        tag: item.id,
+                        child: mediaContent,
+                      ),
                     Positioned.fill(
                       child: IgnorePointer(
                         child: DecoratedBox(
@@ -270,38 +276,109 @@ class _VideoArticleViewState extends State<VideoArticleView> {
 }
 
 class _MediaContent extends StatelessWidget {
-  const _MediaContent({required this.item});
+  const _MediaContent({required this.item, this.videoUrl});
 
   final VideoItem item;
+  final Uri? videoUrl;
 
   @override
   Widget build(BuildContext context) {
-    if (item.videoFrame.trim().isNotEmpty) {
-      return Container(
-        color: Colors.black,
-        child: Html(
-          data: item.videoFrame,
-          style: {
-            'html': Style(margin: Margins.zero, padding: HtmlPaddings.zero),
-            'body': Style(margin: Margins.zero, padding: HtmlPaddings.zero),
-            'iframe': Style(
-              width: Width(100, Unit.percent),
-              height: Height(100, Unit.percent),
-            ),
-          },
-        ),
-      );
+    if (videoUrl != null) {
+      return _VideoIframePlayer(url: videoUrl!);
     }
 
-    if (item.image.isEmpty) {
+    final imageUrl = item.image.trim();
+    if (imageUrl.isEmpty) {
       return Container(color: Colors.grey.shade200);
     }
 
     return CachedNetworkImage(
-      imageUrl: item.image,
+      imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (_, __) => Container(color: Colors.grey.shade200),
       errorWidget: (_, __, ___) => Container(color: Colors.grey.shade200),
+    );
+  }
+}
+
+Uri? _extractVideoUri(String rawHtml) {
+  final html = rawHtml.trim();
+  if (html.isEmpty) return null;
+  final match =
+      RegExp(r'<iframe[^>]+src\s*=\s*["\']([^"\']+)["\']', caseSensitive: false)
+          .firstMatch(html);
+  if (match == null) return null;
+  var src = match.group(1)?.trim();
+  if (src == null || src.isEmpty) return null;
+  src = src.replaceAll('&amp;', '&');
+  if (src.startsWith('//')) {
+    src = 'https:$src';
+  }
+  var uri = Uri.tryParse(src);
+  if (uri == null) return null;
+  if (!uri.hasScheme) {
+    uri = Uri.tryParse('https://$src');
+  }
+  if (uri == null) return null;
+  if (uri.scheme != 'http' && uri.scheme != 'https') {
+    return null;
+  }
+  return uri;
+}
+
+class _VideoIframePlayer extends StatefulWidget {
+  const _VideoIframePlayer({required this.url});
+
+  final Uri url;
+
+  @override
+  State<_VideoIframePlayer> createState() => _VideoIframePlayerState();
+}
+
+class _VideoIframePlayerState extends State<_VideoIframePlayer> {
+  late final WebViewController _controller;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+          },
+        ),
+      )
+      ..loadRequest(widget.url);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VideoIframePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _controller.loadRequest(widget.url);
+      setState(() => _isLoading = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: Colors.black),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
     );
   }
 }
