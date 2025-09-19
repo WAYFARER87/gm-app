@@ -54,28 +54,29 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         elevation: 0,
         title: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Image.asset(
               'assets/images/logo_light_mobile.png',
               height: 30,
               fit: BoxFit.contain,
             ),
-            FutureBuilder<List<CurrencyRate>>(
-              future: _ratesFuture,
-              builder: (context, snapshot) {
-                final rates = snapshot.data ?? const [];
-                if (rates.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(width: 8),
-                    _RatesTicker(rates: rates),
-                  ],
-                );
-              },
+            const SizedBox(width: 8),
+            Expanded(
+              child: FutureBuilder<List<CurrencyRate>>(
+                future: _ratesFuture,
+                builder: (context, snapshot) {
+                  final rates = snapshot.data ?? const [];
+                  if (rates.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: _RatesTicker(rates: rates),
+                  );
+                },
+              ),
             ),
           ],
         ),
