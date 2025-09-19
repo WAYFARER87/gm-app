@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/services/events_api_service.dart';
@@ -257,10 +258,11 @@ class EventListItem extends StatelessWidget {
       if (item.image.isNotEmpty) {
         final imageWidget = ClipRRect(
           borderRadius: borderRadius,
-          child: Image.network(
-            item.image,
+          child: CachedNetworkImage(
+            imageUrl: item.image,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => placeholder,
+            placeholder: (_, __) => placeholder,
+            errorWidget: (_, __, ___) => placeholder,
           ),
         );
         return Hero(
