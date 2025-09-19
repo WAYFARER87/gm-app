@@ -354,6 +354,7 @@ class _VideoIframePlayerState extends State<_VideoIframePlayer> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
+      ..setMediaPlaybackRequiresUserGesture(false)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) {
