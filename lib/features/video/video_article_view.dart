@@ -88,10 +88,10 @@ class _VideoArticleViewState extends State<VideoArticleView> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
-    final videoUrl = _extractVideoUri(item.videoFrame);
-    final hasVideo = videoUrl != null;
+    final videoHtml = _prepareVideoFrameHtml(item.videoFrame);
+    final hasVideo = videoHtml != null;
     final dark = hasVideo ? true : (_isPhotoDark ?? true);
-    final mediaContent = _MediaContent(item: item, videoUrl: videoUrl);
+    final mediaContent = _MediaContent(item: item, videoHtml: videoHtml);
     final iconColor =
         _collapsed ? Colors.black87 : (dark ? Colors.white : Colors.black87);
     final overlayStyle = _collapsed
@@ -277,15 +277,15 @@ class _VideoArticleViewState extends State<VideoArticleView> {
 }
 
 class _MediaContent extends StatelessWidget {
-  const _MediaContent({required this.item, this.videoUrl});
+  const _MediaContent({required this.item, this.videoHtml});
 
   final VideoItem item;
-  final Uri? videoUrl;
+  final String? videoHtml;
 
   @override
   Widget build(BuildContext context) {
-    if (videoUrl != null) {
-      return _VideoIframePlayer(url: videoUrl!);
+    if (videoHtml != null) {
+      return _VideoIframePlayer(html: videoHtml!);
     }
 
     final imageUrl = item.image.trim();
@@ -302,30 +302,10 @@ class _MediaContent extends StatelessWidget {
   }
 }
 
-Uri? _extractVideoUri(String rawHtml) {
+String? _prepareVideoFrameHtml(String rawHtml) {
   final html = _unescapeHtml(rawHtml).trim();
   if (html.isEmpty) return null;
-  final match = RegExp(
-    r"""<iframe[^>]+src\s*=\s*["']([^"']+)["']""",
-    caseSensitive: false,
-  ).firstMatch(html);
-  if (match == null) return null;
-  var src = match.group(1)?.trim();
-  if (src == null || src.isEmpty) return null;
-  src = src.replaceAll('&amp;', '&');
-  if (src.startsWith('//')) {
-    src = 'https:$src';
-  }
-  var uri = Uri.tryParse(src);
-  if (uri == null) return null;
-  if (!uri.hasScheme) {
-    uri = Uri.tryParse('https://$src');
-  }
-  if (uri == null) return null;
-  if (uri.scheme != 'http' && uri.scheme != 'https') {
-    return null;
-  }
-  return uri;
+  return html;
 }
 
 String _unescapeHtml(String value) {
@@ -352,12 +332,13 @@ String _unescapeHtml(String value) {
 }
 
 @visibleForTesting
-Uri? extractVideoUriForTesting(String rawHtml) => _extractVideoUri(rawHtml);
+String? prepareVideoFrameHtmlForTesting(String rawHtml) =>
+    _prepareVideoFrameHtml(rawHtml);
 
 class _VideoIframePlayer extends StatefulWidget {
-  const _VideoIframePlayer({required this.url});
+  const _VideoIframePlayer({required this.html});
 
-  final Uri url;
+  final String html;
 
   @override
   State<_VideoIframePlayer> createState() => _VideoIframePlayerState();
@@ -380,17 +361,47 @@ class _VideoIframePlayerState extends State<_VideoIframePlayer> {
             setState(() => _isLoading = false);
           },
         ),
-      )
-      ..loadRequest(widget.url);
+      );
+    _loadHtml(widget.html);
   }
 
   @override
   void didUpdateWidget(covariant _VideoIframePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) {
-      _controller.loadRequest(widget.url);
+    if (oldWidget.html != widget.html) {
       setState(() => _isLoading = true);
+      _loadHtml(widget.html);
     }
+  }
+
+  void _loadHtml(String iframeHtml) {
+    final document = _buildHtmlDocument(iframeHtml);
+    _controller.loadHtmlString(document, baseUrl: 'https://vk.com/');
+  }
+
+  String _buildHtmlDocument(String iframeHtml) {
+    return '''
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #000;
+      }
+
+      iframe {
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    $iframeHtml
+  </body>
+</html>
+''';
   }
 
   @override
