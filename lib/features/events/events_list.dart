@@ -66,21 +66,23 @@ class _EventsListState extends State<EventsList> {
         page: _page,
         categoryId: widget.categoryId,
       );
+      if (!mounted) return;
       setState(() {
         _items.addAll(page.items);
         _page = page.page + 1;
         _pages = page.pages;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Ошибка загрузки';
       });
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      } else {
+      if (!mounted) {
         _isLoading = false;
+        return;
       }
+      setState(() => _isLoading = false);
     }
   }
 
