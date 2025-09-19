@@ -304,9 +304,10 @@ class _MediaContent extends StatelessWidget {
 Uri? _extractVideoUri(String rawHtml) {
   final html = rawHtml.trim();
   if (html.isEmpty) return null;
-  final match =
-      RegExp(r'<iframe[^>]+src\s*=\s*["\']([^"\']+)["\']', caseSensitive: false)
-          .firstMatch(html);
+  final match = RegExp(
+    r"""<iframe[^>]+src\s*=\s*["']([^"']+)["']""",
+    caseSensitive: false,
+  ).firstMatch(html);
   if (match == null) return null;
   var src = match.group(1)?.trim();
   if (src == null || src.isEmpty) return null;
