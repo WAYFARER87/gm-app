@@ -2,11 +2,11 @@ package com.gorodmore.app
 
 import android.content.Context
 import android.util.Log
-import com.ryanheise.audioservice.AudioServiceActivity
+import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : AudioServiceActivity() {
+class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL_NAME = "flutter_method_channel"
