@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -302,7 +303,7 @@ class _MediaContent extends StatelessWidget {
 }
 
 Uri? _extractVideoUri(String rawHtml) {
-  final html = rawHtml.trim();
+  final html = _unescapeHtml(rawHtml).trim();
   if (html.isEmpty) return null;
   final match = RegExp(
     r"""<iframe[^>]+src\s*=\s*["']([^"']+)["']""",
@@ -326,6 +327,32 @@ Uri? _extractVideoUri(String rawHtml) {
   }
   return uri;
 }
+
+String _unescapeHtml(String value) {
+  if (value.isEmpty) return value;
+  const entities = <MapEntry<String, String>>[
+    MapEntry('&amp;', '&'),
+    MapEntry('&lt;', '<'),
+    MapEntry('&gt;', '>'),
+    MapEntry('&quot;', '"'),
+    MapEntry('&#39;', "'"),
+    MapEntry('&apos;', "'"),
+  ];
+
+  var result = value;
+  var previous = '';
+  while (result != previous) {
+    previous = result;
+    for (final entry in entities) {
+      result = result.replaceAll(entry.key, entry.value);
+    }
+  }
+
+  return result;
+}
+
+@visibleForTesting
+Uri? extractVideoUriForTesting(String rawHtml) => _extractVideoUri(rawHtml);
 
 class _VideoIframePlayer extends StatefulWidget {
   const _VideoIframePlayer({required this.url});
