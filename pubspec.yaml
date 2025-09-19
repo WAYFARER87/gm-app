@@ -24,9 +24,6 @@ dependencies:
   # Локализация
   intl: ^0.20.2
 
-  # Гео и карты
-  permission_handler: ^11.3.0
-
   # Мультимедиа и ссылки
 
   # UI
