@@ -80,7 +80,7 @@ class _VideoScreenState extends State<VideoScreen> {
       );
     }
 
-    final initialIndex = (_categories.isEmpty ? 0 : _selectedIndex).clamp(0, _categories.length - 1);
+    final initialIndex = _categories.isEmpty ? 0 : 0;
 
     return DefaultTabController(
       length: _categories.length,

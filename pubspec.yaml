@@ -1,7 +1,7 @@
 name: m_club
-description: M-Club mobile app
+description: Новости Находки
 publish_to: "none"
-version: 1.0.1+1
+version: 1.1.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
