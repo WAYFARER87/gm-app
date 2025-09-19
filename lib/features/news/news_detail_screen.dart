@@ -66,6 +66,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
         page: _page,
         categoryId: _categoryId,
       );
+      if (!mounted) return;
       setState(() {
         _items.addAll(page.items);
         _page = page.page + 1;
@@ -75,14 +76,15 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
       if (e.toString().contains('No news items')) {
         _pages = _page - 1;
       } else {
-        if (mounted) setState(() => _error = 'Ошибка загрузки');
+        if (!mounted) return;
+        setState(() => _error = 'Ошибка загрузки');
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      } else {
+      if (!mounted) {
         _isLoading = false;
+        return;
       }
+      setState(() => _isLoading = false);
     }
   }
 
