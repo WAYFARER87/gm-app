@@ -178,16 +178,18 @@ class VideoListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageHeight = MediaQuery.of(context).size.width * 0.6;
     final previewPlain = htmlToPlainText(item.contentPreview);
+    final imageUrl = item.image.trim();
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (item.image.isNotEmpty)
+          if (imageUrl.isNotEmpty)
             Hero(
               tag: item.id,
               child: CachedNetworkImage(
-                imageUrl: item.image,
+                imageUrl: imageUrl,
                 width: double.infinity,
                 height: imageHeight,
                 fit: BoxFit.cover,
