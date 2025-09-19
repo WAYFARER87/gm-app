@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../core/services/news_api_service.dart';
 import '../../core/utils/html_utils.dart';
@@ -184,12 +185,16 @@ class NewsListItem extends StatelessWidget {
           if (item.image.isNotEmpty)
             Hero(
               tag: item.id,
-              child: Image.network(
-                item.image,
+              child: CachedNetworkImage(
+                imageUrl: item.image,
                 width: double.infinity,
                 height: imageHeight,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                placeholder: (_, __) => Container(
+                  height: imageHeight,
+                  color: Colors.grey.shade200,
+                ),
+                errorWidget: (_, __, ___) => Container(
                   height: imageHeight,
                   color: Colors.grey.shade200,
                 ),
